@@ -1,6 +1,34 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {Geist, Geist_Mono} from "next/font/google";
 import "./globals.css";
+import localFont from "next/font/local";
+
+const vazirmatn = localFont({
+  src: [
+    {
+      path: "./fonts/Vazirmatn-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/Vazirmatn-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/Vazirmatn-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/Vazirmatn-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-vazirmatn",
+  display: "swap",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,9 +49,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={` ${vazirmatn.variable} font-semibold h-full antialiased`}
+      // ${geistSans.variable} ${geistMono.variable}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col ">{children}</body>
     </html>
   );
 }
