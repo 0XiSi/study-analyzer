@@ -204,28 +204,36 @@ function PartCard({ part }: { part: Part }) {
 
   return (
     <div
-      className={`min-w-0 rounded-xl border px-2.5 py-2 ${style.className}`}
+      className={`min-w-0 rounded-xl border px-2.5 py-2 2xl:px-1.5 2xl:py-1.5 ${style.className}`}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 2xl:gap-1.5">
         <div
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${style.iconClassName}`}
+          className={`
+            flex h-7 w-7 shrink-0 items-center justify-center rounded-lg
+            2xl:h-6 2xl:w-6
+            ${style.iconClassName}
+          `}
         >
-          <Icon size={14} strokeWidth={2.2} />
+          <Icon
+            size={14}
+            strokeWidth={2.2}
+            className="2xl:size-3"
+          />
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
-            <span className="truncate text-[11px] font-bold text-slate-200">
+            <span className="truncate text-[11px] font-bold text-slate-200 2xl:text-[10px]">
               {part.subject}
             </span>
 
-            <span className="shrink-0 rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] font-black text-slate-300">
+            <span className="shrink-0 rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] font-black text-slate-300 2xl:px-1 2xl:text-[9px]">
               {part.count}
             </span>
           </div>
 
           <div className="mt-1 flex items-center gap-1.5 whitespace-nowrap">
-            <span className="text-[10px] font-medium tabular-nums text-slate-400">
+            <span className="text-[10px] font-medium tabular-nums text-slate-400 2xl:text-[9px]">
               {part.from} ← {part.to}
             </span>
 
@@ -233,7 +241,7 @@ function PartCard({ part }: { part: Part }) {
               <>
                 <span className="h-0.5 w-0.5 rounded-full bg-slate-600" />
 
-                <span className="text-[9px] text-slate-500">
+                <span className="text-[9px] text-slate-500 2xl:text-[8px]">
                   گام {part.step}
                 </span>
               </>
@@ -295,18 +303,25 @@ export default function Page() {
   return (
     <main
       dir="rtl"
-      className="min-h-dvh bg-[#08090c] px-3 py-5 text-slate-100"
+      className="
+        min-h-dvh
+        bg-[#08090c]
+        px-3 py-4
+        text-slate-100
+        sm:px-4
+        lg:px-5 lg:py-5
+      "
     >
-      <div className="mx-auto w-full max-w-120">
+      <div className="mx-auto w-full max-w-[1900px]">
         {/* Header */}
-        <header className="mb-4 px-1">
+        <header className="mb-4 px-1 lg:mb-3">
           <div className="flex items-end justify-between">
             <div>
               <p className="text-[10px] font-medium text-slate-500">
                 برنامه تست
               </p>
 
-              <h1 className="mt-0.5 text-xl font-black tracking-tight text-white">
+              <h1 className="mt-0.5 text-xl font-black tracking-tight text-white lg:text-2xl">
                 {days.length
                   ? `برنامه ${days.length} روزه`
                   : "برنامه تست"}
@@ -315,7 +330,7 @@ export default function Page() {
 
             {days.length > 0 && (
               <div className="text-left">
-                <div className="text-lg font-black tabular-nums text-white">
+                <div className="text-lg font-black tabular-nums text-white lg:text-xl">
                   {totalTests}
                 </div>
 
@@ -328,7 +343,7 @@ export default function Page() {
         </header>
 
         {/* Upload */}
-        <label className="mb-4 block cursor-pointer">
+        <label className="mb-4 block cursor-pointer lg:mb-3">
           <input
             type="file"
             accept=".txt,text/plain"
@@ -336,10 +351,21 @@ export default function Page() {
             className="hidden"
           />
 
-          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] px-4 py-5 transition hover:border-white/20 hover:bg-white/[0.04]">
+          <div
+            className="
+              rounded-2xl
+              border border-dashed border-white/10
+              bg-white/[0.025]
+              px-4 py-4
+              transition
+              hover:border-white/20
+              hover:bg-white/[0.04]
+              lg:px-3 lg:py-3
+            "
+          >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-slate-300">
-                <Upload size={18} />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-slate-300 lg:h-8 lg:w-8">
+                <Upload size={17} />
               </div>
 
               <div className="min-w-0">
@@ -366,7 +392,19 @@ export default function Page() {
 
         {/* Days */}
         {days.length > 0 && (
-          <div className="space-y-2">
+          <div
+            className="
+              grid gap-2
+
+              grid-cols-1
+              sm:grid-cols-2
+              md:grid-cols-3
+              lg:grid-cols-4
+              xl:grid-cols-5
+
+              2xl:grid-cols-10
+            "
+          >
             {days.map((parts, index) => {
               const dayNumber = index + 1;
 
@@ -378,25 +416,49 @@ export default function Page() {
               return (
                 <section
                   key={dayNumber}
-                  className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-2.5"
+                  className="
+                    min-w-0
+                    rounded-2xl
+                    border border-white/[0.07]
+                    bg-white/[0.025]
+                    p-2.5
+                    lg:p-2
+
+                    2xl:min-h-[calc(100vh-145px)]
+                    2xl:p-2
+                  "
                 >
-                  <div className="mb-2 flex items-center justify-between px-1">
+                  {/* Day header */}
+                  <div className="mb-2 flex items-center justify-between px-1 2xl:mb-1.5">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.07] text-xs font-black text-white">
+                      <div
+                        className="
+                          flex h-7 w-7
+                          items-center justify-center
+                          rounded-lg
+                          bg-white/[0.07]
+                          text-xs font-black text-white
+
+                          2xl:h-6
+                          2xl:w-6
+                          2xl:text-[10px]
+                        "
+                      >
                         {dayNumber}
                       </div>
 
-                      <span className="text-xs font-bold text-slate-300">
+                      <span className="text-xs font-bold text-slate-300 2xl:text-[10px]">
                         روز {dayNumber}
                       </span>
                     </div>
 
-                    <span className="text-[10px] font-medium text-slate-500">
+                    <span className="text-[10px] font-medium text-slate-500 2xl:text-[9px]">
                       {total} تست
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-1.5">
+                  {/* Parts */}
+                  <div className="grid grid-cols-1 gap-1.5 2xl:gap-1">
                     {parts.map((part, partIndex) => (
                       <PartCard
                         key={`${dayNumber}-${partIndex}`}
@@ -431,3 +493,4 @@ export default function Page() {
     </main>
   );
 }
+
