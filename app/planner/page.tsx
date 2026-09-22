@@ -32,10 +32,6 @@ type SubjectStyle = {
 |--------------------------------------------------------------------------
 | Subject appearance
 |--------------------------------------------------------------------------
-|
-| The subject itself comes from output.txt.
-| This object is ONLY for deciding its visual appearance.
-|
 */
 
 function getSubjectStyle(subject: string): SubjectStyle {
@@ -100,14 +96,6 @@ function getSubjectStyle(subject: string): SubjectStyle {
 |--------------------------------------------------------------------------
 | Parse output.txt
 |--------------------------------------------------------------------------
-|
-| Example:
-|
-| 1  ریاضی 1: 3352–3378 with jump 2 [14]
-|    گسسته: 1–13 [13]
-|    هندسه 1: 1–18 [18]
-|    فیزیک 1: 1–9 [9]
-|
 */
 
 function parseSchedule(text: string): Day[] {
@@ -119,9 +107,6 @@ function parseSchedule(text: string): Day[] {
   const days: Day[] = [];
 
   for (const line of lines) {
-    /*
-     * Get day number.
-     */
     const dayMatch = line.match(/^(\d+)\s+/);
 
     if (!dayMatch) {
@@ -130,14 +115,8 @@ function parseSchedule(text: string): Day[] {
 
     const dayNumber = Number(dayMatch[1]);
 
-    /*
-     * Remove day number.
-     */
     const content = line.slice(dayMatch[0].length);
 
-    /*
-     * Entries are separated by multiple spaces.
-     */
     const entries = content
       .split(/\s{2,}/)
       .map((entry) => entry.trim())
@@ -146,15 +125,6 @@ function parseSchedule(text: string): Day[] {
     const parts: Part[] = [];
 
     for (const entry of entries) {
-      /*
-       * Extract:
-       *
-       * subject
-       * from
-       * to
-       * optional step
-       * count
-       */
       const match = entry.match(
         /^(.+?):\s*(\d+)\s*[–—-]\s*(\d+)(?:\s+with jump\s+(\d+))?\s*\[(\d+)\]$/
       );
@@ -166,12 +136,7 @@ function parseSchedule(text: string): Day[] {
       const [, subject, from, to, step, count] = match;
 
       parts.push({
-        /*
-         * IMPORTANT:
-         * Keep the exact subject from output.txt.
-         */
         subject: subject.trim(),
-
         from: Number(from),
         to: Number(to),
         count: Number(count),
@@ -194,7 +159,7 @@ function parseSchedule(text: string): Day[] {
 
 /*
 |--------------------------------------------------------------------------
-| Part
+| Part Card
 |--------------------------------------------------------------------------
 */
 
@@ -255,6 +220,110 @@ function PartCard({ part }: { part: Part }) {
 
 /*
 |--------------------------------------------------------------------------
+| Total / Summary Card
+|--------------------------------------------------------------------------
+*/
+
+function SummaryCard({
+  subjectTotals,
+  totalTests,
+}: {
+  subjectTotals: { subject: string; count: number }[];
+  totalTests: number;
+}) {
+  return (
+    <section
+      className="
+        min-w-0
+        rounded-2xl
+        border border-white/[0.09]
+        bg-white/[0.035]
+        p-2.5
+        lg:p-2
+        2xl:min-h-[calc(100vh-145px)]
+        2xl:p-2
+      "
+    >
+      {/* Header */}
+      <div className="mb-2 flex items-center justify-between px-1 2xl:mb-1.5">
+        <div className="flex items-center gap-2">
+          <div
+            className="
+              flex h-7 w-7
+              items-center justify-center
+              rounded-lg
+              bg-white/[0.09]
+              text-xs font-black text-white
+
+              2xl:h-6
+              2xl:w-6
+              2xl:text-[10px]
+            "
+          >
+            Σ
+          </div>
+
+          <span className="text-xs font-bold text-slate-200 2xl:text-[10px]">
+            مجموع
+          </span>
+        </div>
+
+        <span className="text-[10px] font-black tabular-nums text-white 2xl:text-[9px]">
+          {totalTests} تست
+        </span>
+      </div>
+
+      {/* Subject totals */}
+      <div className="grid grid-cols-2 gap-1.5 2xl:gap-1">
+        {subjectTotals.map(({ subject, count }) => {
+          const style = getSubjectStyle(subject);
+          const Icon = style.icon;
+
+          return (
+            <div
+              key={subject}
+              className={`
+                flex min-w-0 items-center justify-between
+                rounded-xl border
+                px-1.5 py-2
+                2xl:px-1.5 2xl:py-1.5
+                ${style.className}
+              `}
+            >
+              <div className="flex min-w-0 items-center gap-2 2xl:gap-1.5">
+                <div
+                  className={`
+                    flex h-4 w-4 shrink-0 items-center justify-center
+                    rounded-lg
+                    2xl:h-6 2xl:w-6
+                    ${style.iconClassName}
+                  `}
+                >
+                  <Icon
+                    size={10}
+                    strokeWidth={2.2}
+                    className="2xl:size-3"
+                  />
+                </div>
+
+                <span className="truncate text-[11px] font-bold text-slate-200 2xl:text-[10px]">
+                  {subject}
+                </span>
+              </div>
+
+              <span className="shrink-0 rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] font-black tabular-nums text-slate-300 2xl:px-1 2xl:text-[9px]">
+                {count}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
 | Page
 |--------------------------------------------------------------------------
 */
@@ -264,6 +333,12 @@ export default function Page() {
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
 
+  /*
+  |--------------------------------------------------------------------------
+  | Total tests
+  |--------------------------------------------------------------------------
+  */
+
   const totalTests = useMemo(() => {
     return days.reduce(
       (total, day) =>
@@ -272,6 +347,38 @@ export default function Page() {
       0
     );
   }, [days]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | Total tests per subject
+  |--------------------------------------------------------------------------
+  */
+
+  const subjectTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+
+    for (const day of days) {
+      for (const part of day) {
+        totals.set(
+          part.subject,
+          (totals.get(part.subject) ?? 0) + part.count
+        );
+      }
+    }
+
+    return Array.from(totals.entries()).map(
+      ([subject, count]) => ({
+        subject,
+        count,
+      })
+    );
+  }, [days]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | Upload
+  |--------------------------------------------------------------------------
+  */
 
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -405,6 +512,13 @@ export default function Page() {
               2xl:grid-cols-10
             "
           >
+            {/* Summary - FIRST CARD */}
+              <SummaryCard
+              subjectTotals={subjectTotals}
+              totalTests={totalTests}
+            />
+
+            {/* Actual days */}
             {days.map((parts, index) => {
               const dayNumber = index + 1;
 
@@ -469,6 +583,7 @@ export default function Page() {
                 </section>
               );
             })}
+
           </div>
         )}
 
@@ -478,6 +593,7 @@ export default function Page() {
             فایل برنامه را انتخاب کنید
           </div>
         )}
+
 
         {/* Footer */}
         {days.length > 0 && (
@@ -493,4 +609,3 @@ export default function Page() {
     </main>
   );
 }
-
