@@ -169,9 +169,9 @@ function PartCard({ part }: { part: Part }) {
 
   return (
     <div
-      className={`min-w-0 rounded-xl border px-2.5 py-2 2xl:px-1.5 2xl:py-1.5 ${style.className}`}
+      className={`min-w-0 rounded-xl border px-2.5 py-2 2xl:px-1.5 2xl:py-1.5 font-vazirmatn ${style.className}`}
     >
-      <div className="flex items-center gap-2 2xl:gap-1.5">
+      <div className="flex items-center gap-2 2xl:gap-1.5 font-vazirmatn ">
         <div
           className={`
             flex h-7 w-7 shrink-0 items-center justify-center rounded-lg

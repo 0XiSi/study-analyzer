@@ -74,7 +74,7 @@ export default function Page() {
   return (
     <main
       dir="rtl"
-      className="min-h-screen bg-[#09090b] text-zinc-100"
+      className="min-h-screen bg-[#09090b] text-zinc-100 font-vazirmatn"
     >
       <div className="mx-auto max-w-6xl px-3 py-5 sm:px-5">
 
