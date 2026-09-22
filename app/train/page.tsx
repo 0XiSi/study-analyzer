@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {RotateCcw} from "lucide-react";
 
 type Element = {
   z: number;
@@ -52,6 +53,7 @@ type Mode = "forward" | "reverse";
 export default function Page() {
   const [index, setIndex] = useState(0);
   const [mode, setMode] = useState<Mode>("forward");
+  const [random, setRandom] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [correct, setCorrect] = useState(0);
   const [wrong, setWrong] = useState(0);
@@ -68,7 +70,9 @@ export default function Page() {
     if (wasCorrect === false) setWrong((v) => v + 1);
 
     setRevealed(false);
-    setIndex((v) => (v + 1) % elements.length);
+    setIndex((v) => random ? Math.floor(Math.random() * elements.length) : (v + 1) % elements.length)
+    // setIndex((v) => (v + 1) % elements.length);
+    // setIndex(() => Math.floor(Math.random() * elements.length)); // random
   }
 
   function changeMode(newMode: Mode) {
@@ -143,6 +147,27 @@ export default function Page() {
           >
             عنصر → عدد
           </button>
+          <button
+            onClick={() => setRandom(false)}
+            className={`rounded-xl py-2.5 text-xs font-bold transition ${
+              !random
+                ? "bg-indigo-600 text-white"
+                : "text-zinc-500 hover:bg-zinc-900"
+            }`}
+          >
+            به ترتیب
+          </button>
+
+          <button
+            onClick={() => setRandom(true)}
+            className={`rounded-xl py-2.5 text-xs font-bold transition ${
+              random
+                ? "bg-indigo-600 text-white"
+                : "text-zinc-500 hover:bg-zinc-900"
+            }`}
+          >
+            تصادفی
+          </button>
         </div>
 
         {/* Question Card */}
@@ -182,6 +207,12 @@ export default function Page() {
                 </p>
               </>
             )}
+          <button
+            onClick={() => setIndex(0)}
+            className={"rounded-xl flex items-center justify-center w-10 h-10 text-xs font-bold transition text-zinc-500 hover:bg-zinc-900"}
+          >
+            <RotateCcw/>
+          </button>
 
             {/* Answer */}
             {revealed && (
