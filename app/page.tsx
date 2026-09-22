@@ -12,6 +12,7 @@ import { parseCSV } from "@/app/lib/parser";
 import { calculateStats } from "@/app/lib/statistics";
 
 import type { Session } from "@/app/lib/types";
+import Link from "next/link";
 
 export default function Home() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -54,7 +55,14 @@ export default function Home() {
     >
       <div className="mx-auto max-w-7xl px-4 py-8">
         {sessions.length === 0 ? (
-          <FileUploader onFile={handleFile} />
+        <section>
+          <div className={'flex justify-around my-7'}>
+            <Link href={'/planner'}>برنامه ریزی</Link>
+            <Link href={'/train'}>تمرین جدول تناوبی</Link>
+            <Link href={'/learn'}>حفظ جدول تناوبی</Link>
+          </div>
+            <FileUploader onFile={handleFile} />
+        </section>
         ) : (
           <>
             <TagFilter
