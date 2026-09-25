@@ -234,12 +234,12 @@ function PartCard({ part }: { part: Part }) {
         <div
           className={`
             flex h-7 w-7 shrink-0 items-center justify-center rounded-lg
-            2xl:h-10 2xl:w-10
+            2xl:h-7 2xl:w-7
             ${style.iconClassName}
           `}
         >
           <Icon
-            size={20}
+            size={16}
             strokeWidth={2.2}
             className=""
           />
@@ -253,7 +253,7 @@ function PartCard({ part }: { part: Part }) {
               {part.subject}
             </span>
 
-            <span className=" w-7 rounded-md bg-white/[0.07] px-1.5 py-0.5 font-black text-slate-300 2xl:px-1">
+            <span className=" w-7 flex items-center justify-center rounded-md bg-white/[0.07] px-1.5 py-0.5 font-black text-slate-300 2xl:px-1">
               {part.count}
             </span>
           </div>
