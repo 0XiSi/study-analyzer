@@ -4,18 +4,20 @@ import { useMemo, useState } from "react";
 import {
   Atom,
   FlaskConical,
-  Grid2X2,
-  Hash,
+  Hash, LineSquiggle,
   Sigma,
   Triangle,
   Upload,
-  Zap,
 } from "lucide-react";
+
+type Range = {
+  from: number;
+  to: number;
+};
 
 type Part = {
   subject: string;
-  from: number;
-  to: number;
+  ranges: Range[];
   count: number;
   step?: number;
 };
@@ -55,7 +57,7 @@ function getSubjectStyle(subject: string): SubjectStyle {
 
   if (name.includes("فیزیک")) {
     return {
-      icon: Zap,
+      icon: LineSquiggle,
       className: "border-cyan-500/20 bg-cyan-500/[0.06]",
       iconClassName: "bg-cyan-500/10 text-cyan-300",
     };
@@ -94,6 +96,27 @@ function getSubjectStyle(subject: string): SubjectStyle {
 
 /*
 |--------------------------------------------------------------------------
+| Parse a single range
+|--------------------------------------------------------------------------
+*/
+
+function parseRange(rangeText: string): Range | null {
+  const match = rangeText
+    .trim()
+    .match(/^(\d+)\s*[–—-]\s*(\d+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    from: Number(match[1]),
+    to: Number(match[2]),
+  };
+}
+
+/*
+|--------------------------------------------------------------------------
 | Parse output.txt
 |--------------------------------------------------------------------------
 */
@@ -114,9 +137,14 @@ function parseSchedule(text: string): Day[] {
     }
 
     const dayNumber = Number(dayMatch[1]);
-
     const content = line.slice(dayMatch[0].length);
 
+    /*
+    * Entries are separated by 2+ spaces.
+    *
+    * Example:
+    * ریاضی 1: 169–185, 2881–2882 [19]    گسسته: 56–72 [17]
+    */
     const entries = content
       .split(/\s{2,}/)
       .map((entry) => entry.trim())
@@ -125,20 +153,50 @@ function parseSchedule(text: string): Day[] {
     const parts: Part[] = [];
 
     for (const entry of entries) {
+      /*
+      * Supports:
+      *
+      * ریاضی 1: 169–185 [20]
+      * ریاضی 1: 169–185, 2881–2882 [19]
+      * شیمی 2: 204–230 with jump 2 [14]
+      * حسابان 2: 275–290, 424–431 [24]
+      */
       const match = entry.match(
-        /^(.+?):\s*(\d+)\s*[–—-]\s*(\d+)(?:\s+with jump\s+(\d+))?\s*\[(\d+)\]$/
+        /^(.+?):\s*(.+?)(?:\s+with jump\s+(\d+))?\s*\[(\d+)\]$/
       );
 
       if (!match) {
         continue;
       }
 
-      const [, subject, from, to, step, count] = match;
+      const [, subject, rangesText, step, count] = match;
+
+      /*
+      |--------------------------------------------------------------------------
+      | Multiple ranges
+      |--------------------------------------------------------------------------
+      |
+      | "169–185, 2881–2882"
+      |       ↓
+      | [
+      |   { from: 169, to: 185 },
+      |   { from: 2881, to: 2882 }
+      | ]
+      |
+      */
+
+      const ranges = rangesText
+        .split(",")
+        .map((range) => parseRange(range))
+        .filter((range): range is Range => range !== null);
+
+      if (ranges.length === 0) {
+        continue;
+      }
 
       parts.push({
         subject: subject.trim(),
-        from: Number(from),
-        to: Number(to),
+        ranges,
         count: Number(count),
 
         ...(step
@@ -169,47 +227,62 @@ function PartCard({ part }: { part: Part }) {
 
   return (
     <div
-      className={`min-w-0 rounded-xl border px-2.5 py-2 2xl:px-1.5 2xl:py-1.5 font-vazirmatn ${style.className}`}
+      className={`min-w-0 rounded-xl border px-2.5 py-2 font-vazirmatn 2xl:px-1.5 2xl:py-1.5 ${style.className}`}
     >
-      <div className="flex items-center gap-2 2xl:gap-1.5 font-vazirmatn ">
+      <div className="flex items-center gap-2 font-vazirmatn 2xl:gap-1.5">
+        {/* Icon */}
         <div
           className={`
             flex h-7 w-7 shrink-0 items-center justify-center rounded-lg
-            2xl:h-6 2xl:w-6
+            2xl:h-10 2xl:w-10
             ${style.iconClassName}
           `}
         >
           <Icon
-            size={14}
+            size={20}
             strokeWidth={2.2}
-            className="2xl:size-3"
+            className=""
           />
         </div>
 
+        {/* Content */}
         <div className="min-w-0 flex-1">
+          {/* Subject + count */}
           <div className="flex items-center justify-between gap-1">
-            <span className="truncate text-[11px] font-bold text-slate-200 2xl:text-[10px]">
+            <span className="truncate text-[11px] font-bold text-slate-200 2xl:text-[15px]">
               {part.subject}
             </span>
 
-            <span className="shrink-0 rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] font-black text-slate-300 2xl:px-1 2xl:text-[9px]">
+            <span className=" w-7 rounded-md bg-white/[0.07] px-1.5 py-0.5 font-black text-slate-300 2xl:px-1">
               {part.count}
             </span>
           </div>
 
-          <div className="mt-1 flex items-center gap-1.5 whitespace-nowrap">
-            <span className="text-[10px] font-medium tabular-nums text-slate-400 2xl:text-[9px]">
-              {part.from} ← {part.to}
-            </span>
+          {/* Ranges */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            {part.ranges.map((range, index) => (
+              <div
+                key={`${range.from}-${range.to}-${index}`}
+                className="flex items-center gap-1.5 whitespace-nowrap"
+              >
+                {index > 0 && (
+                  <span className="h-1 w-1 rounded-full bg-slate-600" />
+                )}
+
+                <span className="text-[10px] font-medium tabular-nums text-slate-400 2xl:text-[13px]">
+                  {range.from} ← {range.to}
+                </span>
+              </div>
+            ))}
 
             {part.step !== undefined && (
-              <>
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
                 <span className="h-0.5 w-0.5 rounded-full bg-slate-600" />
 
                 <span className="text-[9px] text-slate-500 2xl:text-[8px]">
                   گام {part.step}
                 </span>
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -230,7 +303,8 @@ function SummaryCard({
 }: {
   subjectTotals: { subject: string; count: number }[];
   totalTests: number;
-}) {
+})
+{
   return (
     <section
       className="
@@ -240,10 +314,15 @@ function SummaryCard({
         bg-white/[0.035]
         p-2.5
         lg:p-2
-        2xl:min-h-[calc(100vh-145px)]
+        2xl:min-h-[250px]
         2xl:p-2
       "
+
     >
+      {/*
+                    2xl:min-h-[calc(100vh-145px)]
+      */}
+
       {/* Header */}
       <div className="mb-2 flex items-center justify-between px-1 2xl:mb-1.5">
         <div className="flex items-center gap-2">
@@ -254,7 +333,6 @@ function SummaryCard({
               rounded-lg
               bg-white/[0.09]
               text-xs font-black text-white
-
               2xl:h-6
               2xl:w-6
               2xl:text-[10px]
@@ -263,12 +341,12 @@ function SummaryCard({
             Σ
           </div>
 
-          <span className="text-xs font-bold text-slate-200 2xl:text-[10px]">
+          <span className="text-xs font-vazirmatn font-bold text-slate-200 2xl:text-[10px]">
             مجموع
           </span>
         </div>
 
-        <span className="text-[10px] font-black tabular-nums text-white 2xl:text-[9px]">
+        <span className="text-[11px] font-vazirmatn font-black tabular-nums text-white">
           {totalTests} تست
         </span>
       </div>
@@ -306,12 +384,12 @@ function SummaryCard({
                   />
                 </div>
 
-                <span className="truncate text-[11px] font-bold text-slate-200 2xl:text-[10px]">
+                <span className="truncate text-[11px] font-vazirmatn font-bold text-slate-200 2xl:text-[12px]">
                   {subject}
                 </span>
               </div>
 
-              <span className="shrink-0 rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] font-black tabular-nums text-slate-300 2xl:px-1 2xl:text-[9px]">
+              <span className="shrink-0 rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] font-vazirmatn font-black tabular-nums text-slate-300 2xl:px-1 2xl:text-[12px]">
                 {count}
               </span>
             </div>
@@ -428,7 +506,7 @@ export default function Page() {
                 برنامه تست
               </p>
 
-              <h1 className="mt-0.5 text-xl font-black tracking-tight text-white lg:text-2xl">
+              <h1 className="mt-0.5 text-xl font-vazirmatn font-black tracking-tight text-white lg:text-2xl">
                 {days.length
                   ? `برنامه ${days.length} روزه`
                   : "برنامه تست"}
@@ -436,12 +514,12 @@ export default function Page() {
             </div>
 
             {days.length > 0 && (
-              <div className="text-left">
-                <div className="text-lg font-black tabular-nums text-white lg:text-xl">
+              <div className="text-left flex-row w-50">
+                <div className="text-lg font-vazirmatn font-black tabular-nums text-white lg:text-xl">
                   {totalTests}
                 </div>
 
-                <div className="text-[9px] text-slate-500">
+                <div className="text-[10px] font-vazirmatn text-slate-500">
                   تست در {days.length} روز
                 </div>
               </div>
@@ -475,14 +553,14 @@ export default function Page() {
                 <Upload size={17} />
               </div>
 
-              <div className="min-w-0">
+              <div className="min-w-0 font-vazirmatn">
                 <div className="text-xs font-bold text-slate-200">
                   {fileName
                     ? fileName
                     : "انتخاب فایل output.txt"}
                 </div>
 
-                <div className="mt-0.5 text-[10px] text-slate-500">
+                <div className="mt-0.5 text-[10px]  text-slate-500">
                   اطلاعات برنامه مستقیماً از فایل خوانده می‌شود.
                 </div>
               </div>
@@ -502,18 +580,16 @@ export default function Page() {
           <div
             className="
               grid gap-2
-
               grid-cols-1
               sm:grid-cols-2
               md:grid-cols-3
               lg:grid-cols-4
               xl:grid-cols-5
-
-              2xl:grid-cols-10
+              2xl:grid-cols-6
             "
           >
             {/* Summary - FIRST CARD */}
-              <SummaryCard
+            <SummaryCard
               subjectTotals={subjectTotals}
               totalTests={totalTests}
             />
@@ -537,36 +613,34 @@ export default function Page() {
                     bg-white/[0.025]
                     p-2.5
                     lg:p-2
-
-                    2xl:min-h-[calc(100vh-145px)]
+                    2xl:min-h-[250px]
                     2xl:p-2
                   "
                 >
+                  {/*
+                    2xl:min-h-[calc(100vh-145px)]
+                   */}
+
                   {/* Day header */}
                   <div className="mb-2 flex items-center justify-between px-1 2xl:mb-1.5">
                     <div className="flex items-center gap-2">
                       <div
                         className="
-                          flex h-7 w-7
+                          flex flex-row h-7 w-13 p-2
                           items-center justify-center
                           rounded-lg
                           bg-white/[0.07]
-                          text-xs font-black text-white
-
+                          text-xs font-vazirmatn font-black text-white
                           2xl:h-6
-                          2xl:w-6
-                          2xl:text-[10px]
+                          2xl:w-13
+                          2xl:text-[13px]
                         "
                       >
-                        {dayNumber}
+                        روز{" "}{dayNumber}
                       </div>
-
-                      <span className="text-xs font-bold text-slate-300 2xl:text-[10px]">
-                        روز {dayNumber}
-                      </span>
                     </div>
 
-                    <span className="text-[10px] font-medium text-slate-500 2xl:text-[9px]">
+                    <span className="text-[12px] font-vazirmatn font-medium text-slate-500">
                       {total} تست
                     </span>
                   </div>
@@ -583,7 +657,6 @@ export default function Page() {
                 </section>
               );
             })}
-
           </div>
         )}
 
@@ -594,10 +667,9 @@ export default function Page() {
           </div>
         )}
 
-
         {/* Footer */}
         {days.length > 0 && (
-          <footer className="mt-3 flex items-center justify-between px-2 text-[9px] text-slate-600">
+          <footer className="mt-3 flex font-vazirmatn items-center justify-between px-2 text-[9px] text-slate-600">
             <span>برنامه تست</span>
 
             <span>

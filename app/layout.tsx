@@ -25,20 +25,25 @@ const vazirmatn = localFont({
       weight: "700",
       style: "normal",
     },
+    {
+      path: "./fonts/Vazirmatn-Black.woff2",
+      weight: "900",
+      style: "normal",
+    },
   ],
   variable: "--font-vazirmatn",
   display: "swap",
 });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// const geistSans = Geist({
+//   variable: "--font-geist-sans",
+//   subsets: ["latin"],
+// });
+//
+// const geistMono = Geist_Mono({
+//   variable: "--font-geist-mono",
+//   subsets: ["latin"],
+// });
 
 export const metadata: Metadata = {
   title: "My konkur saver",
