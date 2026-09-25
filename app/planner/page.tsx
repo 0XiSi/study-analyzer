@@ -502,9 +502,6 @@ export default function Page() {
         <header className="mb-4 px-1 lg:mb-3">
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-[10px] font-medium text-slate-500">
-                برنامه تست
-              </p>
 
               <h1 className="mt-0.5 text-xl font-vazirmatn font-black tracking-tight text-white lg:text-2xl">
                 {days.length
