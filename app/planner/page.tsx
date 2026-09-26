@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Atom,
+  Check,
   FlaskConical,
-  Hash, LineSquiggle,
+  Hash,
+  LineSquiggle,
   Sigma,
   Triangle,
   Upload,
@@ -29,6 +31,9 @@ type SubjectStyle = {
   className: string;
   iconClassName: string;
 };
+
+const CACHE_KEY = "test-plan-output-cache";
+const DONE_KEY = "test-plan-done-cache";
 
 /*
 |--------------------------------------------------------------------------
@@ -139,12 +144,6 @@ function parseSchedule(text: string): Day[] {
     const dayNumber = Number(dayMatch[1]);
     const content = line.slice(dayMatch[0].length);
 
-    /*
-    * Entries are separated by 2+ spaces.
-    *
-    * Example:
-    * ریاضی 1: 169–185, 2881–2882 [19]    گسسته: 56–72 [17]
-    */
     const entries = content
       .split(/\s{2,}/)
       .map((entry) => entry.trim())
@@ -153,14 +152,6 @@ function parseSchedule(text: string): Day[] {
     const parts: Part[] = [];
 
     for (const entry of entries) {
-      /*
-      * Supports:
-      *
-      * ریاضی 1: 169–185 [20]
-      * ریاضی 1: 169–185, 2881–2882 [19]
-      * شیمی 2: 204–230 with jump 2 [14]
-      * حسابان 2: 275–290, 424–431 [24]
-      */
       const match = entry.match(
         /^(.+?):\s*(.+?)(?:\s+with jump\s+(\d+))?\s*\[(\d+)\]$/
       );
@@ -170,20 +161,6 @@ function parseSchedule(text: string): Day[] {
       }
 
       const [, subject, rangesText, step, count] = match;
-
-      /*
-      |--------------------------------------------------------------------------
-      | Multiple ranges
-      |--------------------------------------------------------------------------
-      |
-      | "169–185, 2881–2882"
-      |       ↓
-      | [
-      |   { from: 169, to: 185 },
-      |   { from: 2881, to: 2882 }
-      | ]
-      |
-      */
 
       const ranges = rangesText
         .split(",")
@@ -198,7 +175,6 @@ function parseSchedule(text: string): Day[] {
         subject: subject.trim(),
         ranges,
         count: Number(count),
-
         ...(step
           ? {
               step: Number(step),
@@ -221,39 +197,107 @@ function parseSchedule(text: string): Day[] {
 |--------------------------------------------------------------------------
 */
 
-function PartCard({ part }: { part: Part }) {
+function PartCard({
+  part,
+  done,
+  onToggle,
+}: {
+  part: Part;
+  done: boolean;
+  onToggle: () => void;
+}) {
   const style = getSubjectStyle(part.subject);
   const Icon = style.icon;
 
   return (
-    <div
-      className={`min-w-0 rounded-xl border px-2.5 py-2 font-vazirmatn 2xl:px-1.5 2xl:py-1.5 ${style.className}`}
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`
+        group
+        w-full
+        min-w-0
+        rounded-xl
+        border
+        px-2.5 py-2
+        text-right
+        font-vazirmatn
+        transition-all
+        duration-200
+        2xl:px-1.5
+        2xl:py-1.5
+        ${style.className}
+
+        hover:border-white/15
+        hover:bg-white/[0.06]
+
+        ${
+          done
+            ? "border-emerald-500/20 bg-emerald-500/[0.045] opacity-70"
+            : ""
+        }
+      `}
+      aria-pressed={done}
     >
       <div className="flex items-center gap-2 font-vazirmatn 2xl:gap-1.5">
         {/* Icon */}
         <div
           className={`
+            relative
             flex h-7 w-7 shrink-0 items-center justify-center rounded-lg
-            2xl:h-7 2xl:w-7
+            2xl:h-7
+            2xl:w-7
             ${style.iconClassName}
+            ${done ? "bg-emerald-500/15 text-emerald-300" : ""}
           `}
         >
-          <Icon
-            size={16}
-            strokeWidth={2.2}
-            className=""
-          />
+          <Icon size={16} strokeWidth={2.2} />
+
+          {done && (
+            <div className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-[#08090c] bg-emerald-400 text-[#04110a]">
+              <Check size={10} strokeWidth={3} />
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div className="min-w-0 flex-1">
           {/* Subject + count */}
           <div className="flex items-center justify-between gap-1">
-            <span className="truncate text-[11px] font-bold text-slate-200 2xl:text-[15px]">
+            <span
+              className={`
+                truncate
+                text-[11px]
+                font-bold
+                2xl:text-[15px]
+                ${
+                  done
+                    ? "text-slate-500 line-through"
+                    : "text-slate-200"
+                }
+              `}
+            >
               {part.subject}
             </span>
 
-            <span className=" w-7 flex items-center justify-center rounded-md bg-white/[0.07] px-1.5 py-0.5 font-black text-slate-300 2xl:px-1">
+            <span
+              className={`
+                flex
+                w-7
+                items-center
+                justify-center
+                rounded-md
+                px-1.5
+                py-0.5
+                font-black
+                2xl:px-1
+                ${
+                  done
+                    ? "bg-emerald-500/10 text-emerald-300/70"
+                    : "bg-white/[0.07] text-slate-300"
+                }
+              `}
+            >
               {part.count}
             </span>
           </div>
@@ -269,7 +313,19 @@ function PartCard({ part }: { part: Part }) {
                   <span className="h-1 w-1 rounded-full bg-slate-600" />
                 )}
 
-                <span className="text-[10px] font-medium tabular-nums text-slate-400 2xl:text-[13px]">
+                <span
+                  className={`
+                    text-[10px]
+                    font-medium
+                    tabular-nums
+                    2xl:text-[13px]
+                    ${
+                      done
+                        ? "text-slate-600"
+                        : "text-slate-400"
+                    }
+                  `}
+                >
                   {range.from} ← {range.to}
                 </span>
               </div>
@@ -279,7 +335,17 @@ function PartCard({ part }: { part: Part }) {
               <div className="flex items-center gap-1.5 whitespace-nowrap">
                 <span className="h-0.5 w-0.5 rounded-full bg-slate-600" />
 
-                <span className="text-[9px] text-slate-500 2xl:text-[8px]">
+                <span
+                  className={`
+                    text-[9px]
+                    2xl:text-[8px]
+                    ${
+                      done
+                        ? "text-slate-700"
+                        : "text-slate-500"
+                    }
+                  `}
+                >
                   گام {part.step}
                 </span>
               </div>
@@ -287,7 +353,7 @@ function PartCard({ part }: { part: Part }) {
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -303,8 +369,7 @@ function SummaryCard({
 }: {
   subjectTotals: { subject: string; count: number }[];
   totalTests: number;
-})
-{
+}) {
   return (
     <section
       className="
@@ -317,12 +382,7 @@ function SummaryCard({
         2xl:min-h-[250px]
         2xl:p-2
       "
-
     >
-      {/*
-                    2xl:min-h-[calc(100vh-145px)]
-      */}
-
       {/* Header */}
       <div className="mb-2 flex items-center justify-between px-1 2xl:mb-1.5">
         <div className="flex items-center gap-2">
@@ -373,7 +433,8 @@ function SummaryCard({
                   className={`
                     flex h-4 w-4 shrink-0 items-center justify-center
                     rounded-lg
-                    2xl:h-6 2xl:w-6
+                    2xl:h-6
+                    2xl:w-6
                     ${style.iconClassName}
                   `}
                 >
@@ -413,6 +474,56 @@ export default function Page() {
 
   /*
   |--------------------------------------------------------------------------
+  | Done state
+  |--------------------------------------------------------------------------
+  |
+  | Key example:
+  | "day-1-part-0": true
+  | "day-2-part-3": true
+  |
+  */
+
+  const [doneParts, setDoneParts] = useState<Record<string, boolean>>({});
+
+  /*
+  |--------------------------------------------------------------------------
+  | Load cached output + done state
+  |--------------------------------------------------------------------------
+  */
+
+  useEffect(() => {
+    try {
+      const cachedOutput = localStorage.getItem(CACHE_KEY);
+
+      if (cachedOutput) {
+        const parsedCache = JSON.parse(cachedOutput) as {
+          text?: string;
+          fileName?: string;
+        };
+
+        if (parsedCache.text) {
+          const parsed = parseSchedule(parsedCache.text);
+
+          if (parsed.length > 0) {
+            setDays(parsed);
+            setFileName(parsedCache.fileName ?? "output.txt");
+          }
+        }
+      }
+
+      const cachedDone = localStorage.getItem(DONE_KEY);
+
+      if (cachedDone) {
+        setDoneParts(JSON.parse(cachedDone));
+      }
+    } catch {
+      localStorage.removeItem(CACHE_KEY);
+      localStorage.removeItem(DONE_KEY);
+    }
+  }, []);
+
+  /*
+  |--------------------------------------------------------------------------
   | Total tests
   |--------------------------------------------------------------------------
   */
@@ -421,7 +532,10 @@ export default function Page() {
     return days.reduce(
       (total, day) =>
         total +
-        day.reduce((dayTotal, part) => dayTotal + part.count, 0),
+        day.reduce(
+          (dayTotal, part) => dayTotal + part.count,
+          0
+        ),
       0
     );
   }, [days]);
@@ -454,6 +568,30 @@ export default function Page() {
 
   /*
   |--------------------------------------------------------------------------
+  | Toggle done
+  |--------------------------------------------------------------------------
+  */
+
+  const toggleDone = (dayNumber: number, partIndex: number) => {
+    const key = `day-${dayNumber}-part-${partIndex}`;
+
+    setDoneParts((current) => {
+      const next = {
+        ...current,
+        [key]: !current[key],
+      };
+
+      localStorage.setItem(
+        DONE_KEY,
+        JSON.stringify(next)
+      );
+
+      return next;
+    });
+  };
+
+  /*
+  |--------------------------------------------------------------------------
   | Upload
   |--------------------------------------------------------------------------
   */
@@ -477,6 +615,30 @@ export default function Page() {
         setError("برنامه‌ای در فایل پیدا نشد.");
         return;
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Save output.txt in localStorage
+      |--------------------------------------------------------------------------
+      */
+
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({
+          text,
+          fileName: file.name,
+          savedAt: Date.now(),
+        })
+      );
+
+      /*
+      |--------------------------------------------------------------------------
+      | New file = reset old done states
+      |--------------------------------------------------------------------------
+      */
+
+      localStorage.removeItem(DONE_KEY);
+      setDoneParts({});
 
       setDays(parsed);
       setFileName(file.name);
@@ -502,7 +664,6 @@ export default function Page() {
         <header className="mb-4 px-1 lg:mb-3">
           <div className="flex items-end justify-between">
             <div>
-
               <h1 className="mt-0.5 text-xl font-vazirmatn font-black tracking-tight text-white lg:text-2xl">
                 {days.length
                   ? `برنامه ${days.length} روزه`
@@ -511,7 +672,7 @@ export default function Page() {
             </div>
 
             {days.length > 0 && (
-              <div className="text-left flex-row w-50">
+              <div className="w-50 text-left">
                 <div className="text-lg font-vazirmatn font-black tabular-nums text-white lg:text-xl">
                   {totalTests}
                 </div>
@@ -557,7 +718,7 @@ export default function Page() {
                     : "انتخاب فایل output.txt"}
                 </div>
 
-                <div className="mt-0.5 text-[10px]  text-slate-500">
+                <div className="mt-0.5 text-[10px] text-slate-500">
                   اطلاعات برنامه مستقیماً از فایل خوانده می‌شود.
                 </div>
               </div>
@@ -585,7 +746,7 @@ export default function Page() {
               2xl:grid-cols-6
             "
           >
-            {/* Summary - FIRST CARD */}
+            {/* Summary */}
             <SummaryCard
               subjectTotals={subjectTotals}
               totalTests={totalTests}
@@ -614,26 +775,23 @@ export default function Page() {
                     2xl:p-2
                   "
                 >
-                  {/*
-                    2xl:min-h-[calc(100vh-145px)]
-                   */}
-
                   {/* Day header */}
                   <div className="mb-2 flex items-center justify-between px-1 2xl:mb-1.5">
                     <div className="flex items-center gap-2">
                       <div
                         className="
-                          flex flex-row h-7 w-13 p-2
+                          flex h-7 w-13 flex-row
                           items-center justify-center
                           rounded-lg
                           bg-white/[0.07]
+                          p-2
                           text-xs font-vazirmatn font-black text-white
                           2xl:h-6
                           2xl:w-13
                           2xl:text-[13px]
                         "
                       >
-                        روز{" "}{dayNumber}
+                        روز {dayNumber}
                       </div>
                     </div>
 
@@ -644,12 +802,23 @@ export default function Page() {
 
                   {/* Parts */}
                   <div className="grid grid-cols-1 gap-1.5 2xl:gap-1">
-                    {parts.map((part, partIndex) => (
-                      <PartCard
-                        key={`${dayNumber}-${partIndex}`}
-                        part={part}
-                      />
-                    ))}
+                    {parts.map((part, partIndex) => {
+                      const key = `day-${dayNumber}-part-${partIndex}`;
+
+                      return (
+                        <PartCard
+                          key={`${dayNumber}-${partIndex}`}
+                          part={part}
+                          done={!!doneParts[key]}
+                          onToggle={() =>
+                            toggleDone(
+                              dayNumber,
+                              partIndex
+                            )
+                          }
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               );
@@ -666,7 +835,7 @@ export default function Page() {
 
         {/* Footer */}
         {days.length > 0 && (
-          <footer className="mt-3 flex font-vazirmatn items-center justify-between px-2 text-[9px] text-slate-600">
+          <footer className="mt-3 flex items-center justify-between px-2 font-vazirmatn text-[9px] text-slate-600">
             <span>برنامه تست</span>
 
             <span>
