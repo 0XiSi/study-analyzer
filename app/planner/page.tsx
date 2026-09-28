@@ -7,7 +7,6 @@ import {
   useState,
   type MouseEvent,
 } from "react";
-
 import {
   Atom,
   Check,
@@ -54,6 +53,7 @@ type SubjectStyle = {
 
 const CACHE_KEY = "test-plan-output-cache";
 const DONE_KEY = "test-plan-done-cache";
+const CARRYOVER_DONE_KEY = "test-plan-carryover-done-cache";
 
 /*
 |--------------------------------------------------------------------------
@@ -386,6 +386,72 @@ function PartCard({
 
 /*
 |--------------------------------------------------------------------------
+| Carry-over Card
+|--------------------------------------------------------------------------
+*/
+
+function CarryOverCard({
+  subject,
+  count,
+  onComplete,
+}: {
+  subject: string;
+  count: number;
+  onComplete: () => void;
+}) {
+  const style = getSubjectStyle(subject);
+  const Icon = style.icon;
+
+  return (
+    <button
+      type="button"
+      onClick={onComplete}
+      title="برای علامت‌گذاری به عنوان انجام‌شده کلیک کنید"
+      className={`
+        group
+        inline-flex
+        items-center
+        gap-1
+        rounded-lg
+        border
+        px-1
+        py-1
+        text-right
+        font-vazirmatn
+        transition-all
+        hover:border-emerald-400/20
+        hover:bg-emerald-400/6
+        ${style.className}
+      `}
+    >
+      <div
+        className={`
+          flex h-5 w-5 shrink-0 items-center justify-center rounded-md
+          ${style.iconClassName}
+        `}
+      >
+        <Icon size={11} strokeWidth={2.2} />
+      </div>
+
+      <span className="text-[9px] font-bold text-slate-300">
+        {subject}
+      </span>
+
+      <span className="rounded-md bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-black tabular-nums text-amber-300">
+        {count} تست
+      </span>
+
+      <Check
+        size={11}
+        strokeWidth={2.5}
+        className="text-slate-600 transition-colors group-hover:text-emerald-300"
+      />
+    </button>
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
 | Total / Summary Card
 |--------------------------------------------------------------------------
 */
@@ -513,10 +579,14 @@ export default function Page() {
   const [doneParts, setDoneParts] =
     useState<Record<string, PartProgress>>({});
 
+  const [doneCarryovers, setDoneCarryovers] =
+    useState<Record<string, boolean>>({});
+
   const [progressPopup, setProgressPopup] =
     useState<ProgressPopup | null>(null);
 
-  const remainingInputRef = useRef<HTMLInputElement>(null);
+  const remainingInputRef =
+    useRef<HTMLInputElement>(null);
 
   /*
   |--------------------------------------------------------------------------
@@ -573,39 +643,17 @@ export default function Page() {
 
         setDoneParts(migrated);
       }
+
+      const cachedCarryovers =
+        localStorage.getItem(CARRYOVER_DONE_KEY);
+
+      if (cachedCarryovers) {
+        setDoneCarryovers(JSON.parse(cachedCarryovers));
+      }
     } catch {
       localStorage.removeItem(CACHE_KEY);
       localStorage.removeItem(DONE_KEY);
     }
-  }, []);
-
-  useEffect(() => {
-    if (!progressPopup) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      remainingInputRef.current?.focus();
-      // remainingInputRef.current?.select();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timeout);
-    };
-  }, [progressPopup]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setProgressPopup(null);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
   }, []);
 
   /*
@@ -651,85 +699,76 @@ export default function Page() {
       })
     );
   }, [days]);
-  const carryoversByDay = useMemo(() => {
-    const result: Record<
-      number,
-      Record<string, number>
-    > = {};
 
-    for (let currentDayNumber = 2; currentDayNumber <= days.length; currentDayNumber++) {
-      const previousDayNumber = currentDayNumber - 1;
-      const previousDay = days[previousDayNumber - 1];
-
-      for (
-        let partIndex = 0;
-        partIndex < previousDay.length;
-        partIndex++
-      ) {
-        const part = previousDay[partIndex];
-
-        const key =
-          `day-${previousDayNumber}-part-${partIndex}`;
-
-        const remaining =
-          doneParts[key]?.remaining ?? 0;
-
-        if (remaining <= 0) {
-          continue;
-        }
-
-        if (!result[currentDayNumber]) {
-          result[currentDayNumber] = {};
-        }
-
-        result[currentDayNumber][part.subject] =
-          (result[currentDayNumber][part.subject] ?? 0) +
-          remaining;
-      }
-    }
-
-    return result;
-  }, [days, doneParts]);
   /*
   |--------------------------------------------------------------------------
-  | Toggle done
+  | Progress popup
   |--------------------------------------------------------------------------
   */
 
   const openProgressPopup = (
-      dayNumber: number,
-      partIndex: number,
-      event: MouseEvent<HTMLButtonElement>
-    ) => {
-      const key = `day-${dayNumber}-part-${partIndex}`;
-      const current = doneParts[key];
+    dayNumber: number,
+    partIndex: number,
+    event: MouseEvent<HTMLButtonElement>
+  ) => {
+    const key = `day-${dayNumber}-part-${partIndex}`;
+    const current = doneParts[key];
 
-      const popupWidth = 280;
-      const popupHeight = 190;
-      const margin = 10;
+    const popupWidth = 280;
+    const popupHeight = 190;
+    const margin = 10;
 
-      let x = event.clientX + margin;
-      let y = event.clientY + margin;
+    let x = event.clientX + margin;
+    let y = event.clientY + margin;
 
-      if (x + popupWidth > window.innerWidth) {
-        x = event.clientX - popupWidth - margin;
-      }
+    if (x + popupWidth > window.innerWidth) {
+      x = event.clientX - popupWidth - margin;
+    }
 
-      if (y + popupHeight > window.innerHeight) {
-        y = event.clientY - popupHeight - margin;
-      }
+    if (y + popupHeight > window.innerHeight) {
+      y = event.clientY - popupHeight - margin;
+    }
 
-      x = Math.max(8, x);
-      y = Math.max(8, y);
+    x = Math.max(8, x);
+    y = Math.max(8, y);
 
-      setProgressPopup({
-        dayNumber,
-        partIndex,
-        x,
-        y,
-        value: String(current?.remaining ?? 0),
-      });
+    setProgressPopup({
+      dayNumber,
+      partIndex,
+      x,
+      y,
+      value: String(current?.remaining ?? 0),
+    });
+  };
+
+  useEffect(() => {
+    if (!progressPopup) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      remainingInputRef.current?.focus();
+      remainingInputRef.current?.select();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeout);
     };
+  }, [progressPopup]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setProgressPopup(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const saveProgress = () => {
     if (!progressPopup) {
@@ -737,9 +776,9 @@ export default function Page() {
     }
 
     const key = `day-${progressPopup.dayNumber}-part-${progressPopup.partIndex}`;
+    const carryoverKey = `day-${progressPopup.dayNumber}-part-${progressPopup.partIndex}`;
 
     const parsed = Number.parseInt(progressPopup.value, 10);
-
     const remaining = Number.isFinite(parsed)
       ? Math.max(0, parsed)
       : 0;
@@ -755,6 +794,24 @@ export default function Page() {
 
       localStorage.setItem(
         DONE_KEY,
+        JSON.stringify(next)
+      );
+
+      return next;
+    });
+
+    // The previous carry-over completion is no longer valid
+    // if the source day's remaining count is edited.
+    setDoneCarryovers((current) => {
+      if (!current[carryoverKey]) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[carryoverKey];
+
+      localStorage.setItem(
+        CARRYOVER_DONE_KEY,
         JSON.stringify(next)
       );
 
@@ -788,7 +845,98 @@ export default function Page() {
       return next;
     });
 
+    setDoneCarryovers((current) => {
+      if (!current[key]) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[key];
+
+      localStorage.setItem(
+        CARRYOVER_DONE_KEY,
+        JSON.stringify(next)
+      );
+
+      return next;
+    });
+
     setProgressPopup(null);
+  };
+
+  /*
+  |--------------------------------------------------------------------------
+  | Carry-over from previous day
+  |--------------------------------------------------------------------------
+  */
+
+  const carryoversByDay = useMemo(() => {
+    const result: Record<
+      number,
+      {
+        sourceDayNumber: number;
+        sourcePartIndex: number;
+        subject: string;
+        count: number;
+        key: string;
+      }[]
+    > = {};
+
+    for (
+      let dayNumber = 2;
+      dayNumber <= days.length;
+      dayNumber++
+    ) {
+      const previousDayNumber = dayNumber - 1;
+      const previousDay = days[previousDayNumber - 1];
+
+      for (
+        let partIndex = 0;
+        partIndex < previousDay.length;
+        partIndex++
+      ) {
+        const part = previousDay[partIndex];
+        const key = `day-${previousDayNumber}-part-${partIndex}`;
+        const remaining = doneParts[key]?.remaining ?? 0;
+
+        if (
+          remaining <= 0 ||
+          doneCarryovers[key]
+        ) {
+          continue;
+        }
+
+        if (!result[dayNumber]) {
+          result[dayNumber] = [];
+        }
+
+        result[dayNumber].push({
+          sourceDayNumber: previousDayNumber,
+          sourcePartIndex: partIndex,
+          subject: part.subject,
+          count: remaining,
+          key,
+        });
+      }
+    }
+
+    return result;
+  }, [days, doneParts, doneCarryovers]);
+
+  const completeCarryover = (key: string) => {
+    setDoneCarryovers((current) => {
+      const next = {
+        ...current,
+        [key]: true,
+      };
+
+      localStorage.setItem(
+        CARRYOVER_DONE_KEY,
+        JSON.stringify(next)
+      );
+
+      return next;
+    });
   };
 
   /*
@@ -839,7 +987,10 @@ export default function Page() {
       */
 
       localStorage.removeItem(DONE_KEY);
+      localStorage.removeItem(CARRYOVER_DONE_KEY);
       setDoneParts({});
+      setDoneCarryovers({});
+      setProgressPopup(null);
 
       setDays(parsed);
       setFileName(file.name);
@@ -1000,43 +1151,29 @@ export default function Page() {
                       {total} تست
                     </span>
                   </div>
+
                   {/* Carry-over from previous day */}
-                  {carryoversByDay[dayNumber] &&
-                    Object.keys(carryoversByDay[dayNumber]).length > 0 && (
-                      <div className="mb-2 rounded-xl border border-amber-400/10 bg-amber-400/[0.045] px-2.5 py-2">
-                        <div className="mb-1.5 text-[9px] font-vazirmatn font-bold text-amber-300/80">
-                          باقی‌مانده از روز قبل
-                        </div>
-
-                        <div className="flex flex-wrap gap-1.5">
-                          {Object.entries(carryoversByDay[dayNumber]).map(
-                            ([subject, count]) => (
-                              <div
-                                key={subject}
-                                className={`
-                                  inline-flex
-                                  items-center
-                                  gap-1.5
-                                  rounded-lg
-                                  border
-                                  px-2
-                                  py-1
-                                  ${getSubjectStyle(subject).className}
-                                `}
-                              >
-                                <span className="font-vazirmatn text-[9px] font-bold text-slate-300">
-                                  {subject}
-                                </span>
-
-                                <span className="rounded-md bg-amber-400/10 px-1 text-[9px] font-vazirmatn font-black tabular-nums text-amber-300">
-                                  {count} تست
-                                </span>
-                              </div>
-                            )
-                          )}
-                        </div>
+                  {carryoversByDay[dayNumber]?.length > 0 && (
+                    <div className="mb-2 rounded-xl border border-amber-400/10 bg-amber-400/[0.045] px-2.5 py-2">
+                      <div className="mb-1.5 text-[9px] font-vazirmatn font-bold text-amber-300/80">
+                        باقی‌مانده از روز قبل
                       </div>
-                    )}
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {carryoversByDay[dayNumber].map((carryover) => (
+                          <CarryOverCard
+                            key={carryover.key}
+                            subject={carryover.subject}
+                            count={carryover.count}
+                            onComplete={() =>
+                              completeCarryover(carryover.key)
+                            }
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Parts */}
                   <div className="grid grid-cols-1 gap-1.5 2xl:gap-1">
                     {parts.map((part, partIndex) => {
@@ -1087,22 +1224,15 @@ export default function Page() {
           </footer>
         )}
       </div>
+
+      {/* Progress popup */}
       {progressPopup && (
         <div
           className="fixed inset-0 z-50"
           onMouseDown={() => setProgressPopup(null)}
         >
           <div
-            className="
-              fixed
-              w-[200px]
-              rounded-2xl
-              border border-white/10
-              bg-[#101218]
-              p-3
-              shadow-2xl
-              shadow-black/50
-            "
+            className="fixed w-[280px] rounded-2xl border border-white/10 bg-[#101218] p-3 shadow-2xl shadow-black/50"
             style={{
               left: progressPopup.x,
               top: progressPopup.y,
@@ -1143,43 +1273,14 @@ export default function Page() {
                   setProgressPopup(null);
                 }
               }}
-              className="
-                mt-3
-                w-full
-                rounded-xl
-                border border-white/10
-                bg-white/[0.05]
-                px-3
-                py-2.5
-                text-center
-                font-vazirmatn
-                text-lg
-                font-black
-                text-white
-                outline-none
-                focus:border-emerald-400/30
-                focus:ring-2
-                focus:ring-emerald-400/10
-              "
+              className="mt-3 w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5 text-center font-vazirmatn text-lg font-black text-white outline-none focus:border-emerald-400/30 focus:ring-2 focus:ring-emerald-400/10"
             />
 
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
                 onClick={() => setProgressPopup(null)}
-                className="
-                  flex-1
-                  rounded-xl
-                  bg-white/[0.06]
-                  px-3
-                  py-2
-                  font-vazirmatn
-                  text-[10px]
-                  font-bold
-                  text-slate-400
-                  transition
-                  hover:bg-white/[0.09]
-                "
+                className="flex-1 rounded-xl bg-white/[0.06] px-3 py-2 font-vazirmatn text-[10px] font-bold text-slate-400 transition hover:bg-white/[0.09]"
               >
                 انصراف
               </button>
@@ -1187,19 +1288,7 @@ export default function Page() {
               <button
                 type="button"
                 onClick={saveProgress}
-                className="
-                  flex-1
-                  rounded-xl
-                  bg-emerald-500/15
-                  px-3
-                  py-2
-                  font-vazirmatn
-                  text-[10px]
-                  font-black
-                  text-emerald-300
-                  transition
-                  hover:bg-emerald-500/20
-                "
+                className="flex-1 rounded-xl bg-emerald-500/15 px-3 py-2 font-vazirmatn text-[10px] font-black text-emerald-300 transition hover:bg-emerald-500/20"
               >
                 ثبت
               </button>
@@ -1211,20 +1300,7 @@ export default function Page() {
               <button
                 type="button"
                 onClick={markAsNotDone}
-                className="
-                  mt-2
-                  w-full
-                  rounded-xl
-                  px-3
-                  py-1.5
-                  font-vazirmatn
-                  text-[9px]
-                  font-bold
-                  text-slate-500
-                  transition
-                  hover:bg-white/[0.04]
-                  hover:text-slate-300
-                "
+                className="mt-2 w-full rounded-xl px-3 py-1.5 font-vazirmatn text-[9px] font-bold text-slate-500 transition hover:bg-white/[0.04] hover:text-slate-300"
               >
                 علامت‌گذاری به عنوان انجام‌نشده
               </button>
