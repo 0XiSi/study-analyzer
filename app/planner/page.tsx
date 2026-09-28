@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
+
 import {
   Atom,
   Check,
@@ -25,6 +32,19 @@ type Part = {
 };
 
 type Day = Part[];
+
+type PartProgress = {
+  done: boolean;
+  remaining: number;
+};
+
+type ProgressPopup = {
+  dayNumber: number;
+  partIndex: number;
+  x: number;
+  y: number;
+  value: string;
+};
 
 type SubjectStyle = {
   icon: typeof Sigma;
@@ -199,20 +219,21 @@ function parseSchedule(text: string): Day[] {
 
 function PartCard({
   part,
-  done,
-  onToggle,
+  progress,
+  onClick,
 }: {
   part: Part;
-  done: boolean;
-  onToggle: () => void;
+  progress: PartProgress;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   const style = getSubjectStyle(part.subject);
   const Icon = style.icon;
+  const done = progress.done;
 
   return (
     <button
       type="button"
-      onClick={onToggle}
+      onClick={onClick}
       className={`
         group
         w-full
@@ -227,7 +248,6 @@ function PartCard({
         2xl:px-1.5
         2xl:py-1.5
         ${style.className}
-
         hover:border-white/15
         hover:bg-white/[0.06]
 
@@ -351,6 +371,13 @@ function PartCard({
               </div>
             )}
           </div>
+
+          {/* Remaining */}
+          {done && progress.remaining > 0 && (
+            <div className="mt-1.5 inline-flex rounded-md bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-300 2xl:text-[10px]">
+              باقی‌مانده: {progress.remaining} تست
+            </div>
+          )}
         </div>
       </div>
     </button>
@@ -483,7 +510,13 @@ export default function Page() {
   |
   */
 
-  const [doneParts, setDoneParts] = useState<Record<string, boolean>>({});
+  const [doneParts, setDoneParts] =
+    useState<Record<string, PartProgress>>({});
+
+  const [progressPopup, setProgressPopup] =
+    useState<ProgressPopup | null>(null);
+
+  const remainingInputRef = useRef<HTMLInputElement>(null);
 
   /*
   |--------------------------------------------------------------------------
@@ -514,12 +547,65 @@ export default function Page() {
       const cachedDone = localStorage.getItem(DONE_KEY);
 
       if (cachedDone) {
-        setDoneParts(JSON.parse(cachedDone));
+        const raw = JSON.parse(cachedDone) as Record<
+          string,
+          boolean | Partial<PartProgress>
+        >;
+
+        const migrated: Record<string, PartProgress> = {};
+
+        for (const [key, value] of Object.entries(raw)) {
+          if (typeof value === "boolean") {
+            migrated[key] = {
+              done: value,
+              remaining: 0,
+            };
+          } else {
+            migrated[key] = {
+              done: Boolean(value.done),
+              remaining: Math.max(
+                0,
+                Number(value.remaining ?? 0)
+              ),
+            };
+          }
+        }
+
+        setDoneParts(migrated);
       }
     } catch {
       localStorage.removeItem(CACHE_KEY);
       localStorage.removeItem(DONE_KEY);
     }
+  }, []);
+
+  useEffect(() => {
+    if (!progressPopup) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      remainingInputRef.current?.focus();
+      // remainingInputRef.current?.select();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [progressPopup]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setProgressPopup(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   /*
@@ -565,20 +651,106 @@ export default function Page() {
       })
     );
   }, [days]);
+  const carryoversByDay = useMemo(() => {
+    const result: Record<
+      number,
+      Record<string, number>
+    > = {};
 
+    for (let currentDayNumber = 2; currentDayNumber <= days.length; currentDayNumber++) {
+      const previousDayNumber = currentDayNumber - 1;
+      const previousDay = days[previousDayNumber - 1];
+
+      for (
+        let partIndex = 0;
+        partIndex < previousDay.length;
+        partIndex++
+      ) {
+        const part = previousDay[partIndex];
+
+        const key =
+          `day-${previousDayNumber}-part-${partIndex}`;
+
+        const remaining =
+          doneParts[key]?.remaining ?? 0;
+
+        if (remaining <= 0) {
+          continue;
+        }
+
+        if (!result[currentDayNumber]) {
+          result[currentDayNumber] = {};
+        }
+
+        result[currentDayNumber][part.subject] =
+          (result[currentDayNumber][part.subject] ?? 0) +
+          remaining;
+      }
+    }
+
+    return result;
+  }, [days, doneParts]);
   /*
   |--------------------------------------------------------------------------
   | Toggle done
   |--------------------------------------------------------------------------
   */
 
-  const toggleDone = (dayNumber: number, partIndex: number) => {
-    const key = `day-${dayNumber}-part-${partIndex}`;
+  const openProgressPopup = (
+      dayNumber: number,
+      partIndex: number,
+      event: MouseEvent<HTMLButtonElement>
+    ) => {
+      const key = `day-${dayNumber}-part-${partIndex}`;
+      const current = doneParts[key];
+
+      const popupWidth = 280;
+      const popupHeight = 190;
+      const margin = 10;
+
+      let x = event.clientX + margin;
+      let y = event.clientY + margin;
+
+      if (x + popupWidth > window.innerWidth) {
+        x = event.clientX - popupWidth - margin;
+      }
+
+      if (y + popupHeight > window.innerHeight) {
+        y = event.clientY - popupHeight - margin;
+      }
+
+      x = Math.max(8, x);
+      y = Math.max(8, y);
+
+      setProgressPopup({
+        dayNumber,
+        partIndex,
+        x,
+        y,
+        value: String(current?.remaining ?? 0),
+      });
+    };
+
+  const saveProgress = () => {
+    if (!progressPopup) {
+      return;
+    }
+
+    const key = `day-${progressPopup.dayNumber}-part-${progressPopup.partIndex}`;
+
+    const parsed = Number.parseInt(progressPopup.value, 10);
+
+    const remaining = Number.isFinite(parsed)
+      ? Math.max(0, parsed)
+      : 0;
 
     setDoneParts((current) => {
       const next = {
         ...current,
-        [key]: !current[key],
+        [key]: {
+          done: true,
+          remaining,
+        },
       };
 
       localStorage.setItem(
@@ -588,6 +760,35 @@ export default function Page() {
 
       return next;
     });
+
+    setProgressPopup(null);
+  };
+
+  const markAsNotDone = () => {
+    if (!progressPopup) {
+      return;
+    }
+
+    const key = `day-${progressPopup.dayNumber}-part-${progressPopup.partIndex}`;
+
+    setDoneParts((current) => {
+      const next = {
+        ...current,
+        [key]: {
+          done: false,
+          remaining: 0,
+        },
+      };
+
+      localStorage.setItem(
+        DONE_KEY,
+        JSON.stringify(next)
+      );
+
+      return next;
+    });
+
+    setProgressPopup(null);
   };
 
   /*
@@ -799,7 +1000,43 @@ export default function Page() {
                       {total} تست
                     </span>
                   </div>
+                  {/* Carry-over from previous day */}
+                  {carryoversByDay[dayNumber] &&
+                    Object.keys(carryoversByDay[dayNumber]).length > 0 && (
+                      <div className="mb-2 rounded-xl border border-amber-400/10 bg-amber-400/[0.045] px-2.5 py-2">
+                        <div className="mb-1.5 text-[9px] font-vazirmatn font-bold text-amber-300/80">
+                          باقی‌مانده از روز قبل
+                        </div>
 
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(carryoversByDay[dayNumber]).map(
+                            ([subject, count]) => (
+                              <div
+                                key={subject}
+                                className={`
+                                  inline-flex
+                                  items-center
+                                  gap-1.5
+                                  rounded-lg
+                                  border
+                                  px-2
+                                  py-1
+                                  ${getSubjectStyle(subject).className}
+                                `}
+                              >
+                                <span className="font-vazirmatn text-[9px] font-bold text-slate-300">
+                                  {subject}
+                                </span>
+
+                                <span className="rounded-md bg-amber-400/10 px-1 text-[9px] font-vazirmatn font-black tabular-nums text-amber-300">
+                                  {count} تست
+                                </span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
                   {/* Parts */}
                   <div className="grid grid-cols-1 gap-1.5 2xl:gap-1">
                     {parts.map((part, partIndex) => {
@@ -809,11 +1046,17 @@ export default function Page() {
                         <PartCard
                           key={`${dayNumber}-${partIndex}`}
                           part={part}
-                          done={!!doneParts[key]}
-                          onToggle={() =>
-                            toggleDone(
+                          progress={
+                            doneParts[key] ?? {
+                              done: false,
+                              remaining: 0,
+                            }
+                          }
+                          onClick={(event) =>
+                            openProgressPopup(
                               dayNumber,
-                              partIndex
+                              partIndex,
+                              event
                             )
                           }
                         />
@@ -844,6 +1087,151 @@ export default function Page() {
           </footer>
         )}
       </div>
+      {progressPopup && (
+        <div
+          className="fixed inset-0 z-50"
+          onMouseDown={() => setProgressPopup(null)}
+        >
+          <div
+            className="
+              fixed
+              w-[200px]
+              rounded-2xl
+              border border-white/10
+              bg-[#101218]
+              p-3
+              shadow-2xl
+              shadow-black/50
+            "
+            style={{
+              left: progressPopup.x,
+              top: progressPopup.y,
+            }}
+            dir="rtl"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="font-vazirmatn text-sm font-black text-white">
+              تست‌های باقی‌مانده
+            </div>
+
+            <div className="mt-1 font-vazirmatn text-[10px] text-slate-500">
+              چند تست از این بخش را امروز انجام ندادی؟
+            </div>
+
+            <input
+              ref={remainingInputRef}
+              type="number"
+              min={0}
+              step={1}
+              value={progressPopup.value}
+              onChange={(event) =>
+                setProgressPopup((current) =>
+                  current
+                    ? {
+                        ...current,
+                        value: event.target.value,
+                      }
+                    : null
+                )
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  saveProgress();
+                }
+
+                if (event.key === "Escape") {
+                  setProgressPopup(null);
+                }
+              }}
+              className="
+                mt-3
+                w-full
+                rounded-xl
+                border border-white/10
+                bg-white/[0.05]
+                px-3
+                py-2.5
+                text-center
+                font-vazirmatn
+                text-lg
+                font-black
+                text-white
+                outline-none
+                focus:border-emerald-400/30
+                focus:ring-2
+                focus:ring-emerald-400/10
+              "
+            />
+
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setProgressPopup(null)}
+                className="
+                  flex-1
+                  rounded-xl
+                  bg-white/[0.06]
+                  px-3
+                  py-2
+                  font-vazirmatn
+                  text-[10px]
+                  font-bold
+                  text-slate-400
+                  transition
+                  hover:bg-white/[0.09]
+                "
+              >
+                انصراف
+              </button>
+
+              <button
+                type="button"
+                onClick={saveProgress}
+                className="
+                  flex-1
+                  rounded-xl
+                  bg-emerald-500/15
+                  px-3
+                  py-2
+                  font-vazirmatn
+                  text-[10px]
+                  font-black
+                  text-emerald-300
+                  transition
+                  hover:bg-emerald-500/20
+                "
+              >
+                ثبت
+              </button>
+            </div>
+
+            {doneParts[
+              `day-${progressPopup.dayNumber}-part-${progressPopup.partIndex}`
+            ]?.done && (
+              <button
+                type="button"
+                onClick={markAsNotDone}
+                className="
+                  mt-2
+                  w-full
+                  rounded-xl
+                  px-3
+                  py-1.5
+                  font-vazirmatn
+                  text-[9px]
+                  font-bold
+                  text-slate-500
+                  transition
+                  hover:bg-white/[0.04]
+                  hover:text-slate-300
+                "
+              >
+                علامت‌گذاری به عنوان انجام‌نشده
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
