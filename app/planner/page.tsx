@@ -3,6 +3,7 @@
 import {
   type ChangeEvent,
   type ReactNode,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -62,8 +63,17 @@ const toDraft = (id: string, subject: SubjectConfig): SubjectDraft => ({
   step: String(subject.step ?? 1),
 });
 
+const RETURNED_OUTPUT_KEY = 'study-planner-returned-output';
+
+function decodeBase64Utf8(encoded: string): string {
+  const binary = window.atob(decodeURIComponent(encoded));
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
 export default function PlannerPage() {
   const [config, setConfig] = useState<PlannerConfig>(starter);
+  const [returnedOutput, setReturnedOutput] = useState('');
   const [selected, setSelected] = useState(
     Object.keys(starter.subjects)[0],
   );
@@ -91,8 +101,49 @@ export default function PlannerPage() {
     }
   }, [config]);
 
-  const output = generated.output;
+  // A plan returned from the viewer takes precedence until config is edited.
+  const output = returnedOutput || generated.output;
   const visibleError = generated.error || error;
+
+  useEffect(() => {
+    try {
+      const prefix = '#plan=';
+      let incoming = '';
+
+      if (window.location.hash.startsWith(prefix)) {
+        incoming = decodeBase64Utf8(window.location.hash.slice(prefix.length));
+
+        if (!incoming.trim() || !/^\s*\d+\s{2,}/m.test(incoming)) {
+          throw new Error('Invalid output.txt content');
+        }
+
+        sessionStorage.setItem(RETURNED_OUTPUT_KEY, incoming);
+        window.history.replaceState(
+          null,
+          '',
+          window.location.pathname + window.location.search,
+        );
+      } else {
+        // Keep a returned plan available after refresh in this tab.
+        incoming = sessionStorage.getItem(RETURNED_OUTPUT_KEY) ?? '';
+      }
+
+      if (incoming) {
+        setReturnedOutput(incoming);
+        setError('');
+        setNotice('خروجی فعلی از نمایشگر مطالعه به استودیو برگشت داده شد.');
+      }
+    } catch {
+      sessionStorage.removeItem(RETURNED_OUTPUT_KEY);
+      setError('خواندن خروجی برگشتی ناموفق بود.');
+    }
+  }, []);
+
+  function setConfigAndResetOutput(nextConfig: PlannerConfig) {
+    setReturnedOutput('');
+    sessionStorage.removeItem(RETURNED_OUTPUT_KEY);
+    setConfig(nextConfig);
+  }
 
   function updateSubjectDraft(id: string) {
     setSelected(id);
@@ -132,7 +183,7 @@ export default function PlannerPage() {
       step: Number(draft.step),
     };
 
-    setConfig({
+    setConfigAndResetOutput({
       ...config,
       subjects: next,
       schedule: config.schedule.map((item) =>
@@ -162,7 +213,7 @@ export default function PlannerPage() {
 
     const subject = { name: newName.trim(), range: '1-20', step: 1 };
 
-    setConfig({
+    setConfigAndResetOutput({
       ...config,
       subjects: { ...config.subjects, [id]: subject },
     });
@@ -190,7 +241,7 @@ export default function PlannerPage() {
           : item.one_of.length > 0 && item.one_of.length > 1,
       );
 
-    setConfig({ ...config, subjects, schedule });
+    setConfigAndResetOutput({ ...config, subjects, schedule });
 
     const nextId = Object.keys(subjects)[0];
     if (nextId) {
@@ -215,7 +266,7 @@ export default function PlannerPage() {
       return;
     }
 
-    setConfig({
+    setConfigAndResetOutput({
       ...config,
       schedule: [...config.schedule, { subject: id }],
     });
@@ -238,7 +289,7 @@ export default function PlannerPage() {
       return;
     }
 
-    setConfig({
+    setConfigAndResetOutput({
       ...config,
       schedule: [...config.schedule, { one_of: groupSelection }],
     });
@@ -248,7 +299,7 @@ export default function PlannerPage() {
   }
 
   function removeSchedule(index: number) {
-    setConfig({
+    setConfigAndResetOutput({
       ...config,
       schedule: config.schedule.filter((_, i) => i !== index),
     });
@@ -291,7 +342,7 @@ export default function PlannerPage() {
       }
 
       const parsed = JSON.parse(raw) as PlannerConfig;
-      setConfig(parsed);
+      setConfigAndResetOutput(parsed);
       const id = Object.keys(parsed.subjects)[0];
       if (id) {
         setSelected(id);
@@ -312,7 +363,7 @@ export default function PlannerPage() {
     reader.onload = () => {
       try {
         const parsed = JSON.parse(String(reader.result)) as PlannerConfig;
-        setConfig(parsed);
+        setConfigAndResetOutput(parsed);
         const id = Object.keys(parsed.subjects)[0];
         if (id) {
           setSelected(id);
@@ -346,7 +397,7 @@ export default function PlannerPage() {
     const encoded = btoa(binary);
 
     window.open(
-      `${VIEWER_URL}#plan=${encoded}`,
+      `${VIEWER_URL}#plan=${encodeURIComponent(encoded)}`,
       '_blank',
       'noopener,noreferrer',
     );
@@ -494,7 +545,7 @@ export default function PlannerPage() {
                 max={60}
                 value={config.days}
                 onChange={(event) =>
-                  setConfig({ ...config, days: Number(event.target.value) })
+                  setConfigAndResetOutput({ ...config, days: Number(event.target.value) })
                 }
                 className="field-input max-w-40"
                 dir="ltr"
@@ -747,6 +798,19 @@ export default function PlannerPage() {
                   <p className="mt-1 text-xs text-slate-500">
                     متن ساده با قالب‌بندی دقیق · UTF-8
                   </p>
+                  {returnedOutput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReturnedOutput('');
+                        sessionStorage.removeItem(RETURNED_OUTPUT_KEY);
+                        setNotice('پیش‌نمایش به خروجی تولیدشده از تنظیمات فعلی برگشت.');
+                      }}
+                      className="mt-2 text-xs font-semibold text-blue-300 transition hover:text-blue-200"
+                    >
+                      نمایش خروجی تولیدشده از تنظیمات
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2">

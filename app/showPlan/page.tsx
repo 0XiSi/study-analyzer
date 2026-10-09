@@ -8,6 +8,7 @@ import {
   type MouseEvent,
 } from "react";
 import {
+  ArrowLeft,
   Atom,
   Check,
   FlaskConical,
@@ -54,6 +55,20 @@ type SubjectStyle = {
 const CACHE_KEY = "test-plan-output-cache";
 const DONE_KEY = "test-plan-done-cache";
 const CARRYOVER_DONE_KEY = "test-plan-carryover-done-cache";
+const STUDIO_PATH = "/planner";
+
+function decodeBase64Utf8(encoded: string): string {
+  const binary = window.atob(decodeURIComponent(encoded));
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function encodeBase64Utf8(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -596,52 +611,42 @@ export default function Page() {
 
   useEffect(() => {
     try {
-
+      // Receive a plan from Planner Studio through the URL fragment.
       const transferPrefix = "#plan=";
-
       if (window.location.hash.startsWith(transferPrefix)) {
-        try {
-          const encoded = window.location.hash.slice(
-            transferPrefix.length
+        const incomingText = decodeBase64Utf8(
+          window.location.hash.slice(transferPrefix.length)
+        );
+
+        if (parseSchedule(incomingText).length === 0) {
+          setError("برنامهٔ دریافتی معتبر نیست.");
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname + window.location.search
           );
-
-          const binary = window.atob(encoded);
-          const bytes = Uint8Array.from(
-            binary,
-            (char) => char.charCodeAt(0)
-          );
-
-          const incomingText = new TextDecoder().decode(bytes);
-
-          if (parseSchedule(incomingText).length === 0) {
-            setError("برنامه دریافتی معتبر نیست.");
-          } else {
-            // Use the exact cache format already expected by this page.
-            localStorage.setItem(
-              CACHE_KEY,
-              JSON.stringify({
-                text: incomingText,
-                fileName: "output.txt",
-                savedAt: Date.now(),
-              })
-            );
-
-            // A new plan should not inherit the previous plan's progress.
-            localStorage.removeItem(DONE_KEY);
-            localStorage.removeItem(CARRYOVER_DONE_KEY);
-
-            setError("");
-
-            // Remove the encoded plan from the visible URL.
-            window.history.replaceState(
-              null,
-              "",
-              window.location.pathname + window.location.search
-            );
-          }
-        } catch {
-          setError("دریافت برنامه ناموفق بود.");
+          return;
         }
+
+        localStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            text: incomingText,
+            fileName: "output.txt",
+            savedAt: Date.now(),
+          })
+        );
+        // A different plan should not inherit the previous plan's progress.
+        localStorage.removeItem(DONE_KEY);
+        localStorage.removeItem(CARRYOVER_DONE_KEY);
+        setDoneParts({});
+        setDoneCarryovers({});
+        setProgressPopup(null);
+        window.history.replaceState(
+          null,
+          "",
+          window.location.pathname + window.location.search
+        );
       }
 
       const cachedOutput = localStorage.getItem(CACHE_KEY);
@@ -987,6 +992,29 @@ export default function Page() {
     });
   };
 
+  function sendBackToStudio() {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (!cached) {
+        setError("فایل برنامهٔ فعلی در حافظه پیدا نشد.");
+        return;
+      }
+
+      const parsedCache = JSON.parse(cached) as { text?: string };
+      const text = parsedCache.text;
+      if (!text || parseSchedule(text).length === 0) {
+        setError("خروجی فعلی معتبر نیست و قابل بازگرداندن نیست.");
+        return;
+      }
+
+      const encoded = encodeURIComponent(encodeBase64Utf8(text));
+      const studioUrl = `${window.location.origin}${STUDIO_PATH}#plan=${encoded}`;
+      window.location.assign(studioUrl);
+    } catch {
+      setError("بازگرداندن خروجی به استودیو ناموفق بود.");
+    }
+  }
+
   /*
   |--------------------------------------------------------------------------
   | Upload
@@ -1125,6 +1153,20 @@ export default function Page() {
             </div>
           </div>
         </label>
+
+        {days.length > 0 && (
+          <div className="mb-4 flex justify-start">
+            <button
+              type="button"
+              onClick={sendBackToStudio}
+              className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-3 py-2.5 font-vazirmatn text-xs font-bold text-blue-200 transition hover:border-blue-300/30 hover:bg-blue-500/15"
+              title="بازگرداندن متن دقیق output.txt به استودیو"
+            >
+              <ArrowLeft size={15} />
+              بازگرداندن خروجی به استودیو
+            </button>
+          </div>
+        )}
 
         {/* Error */}
         {error && (
