@@ -353,7 +353,7 @@ function PartCard({
                   {range.from === range.to ? range.from : `${range.from} ← ${range.to}`}
                 </span>
                 {range.step !== undefined && range.step > 1 && (
-                  <span className={`text-[9px] ${done ? "text-slate-700" : "text-slate-500"}`}>
+                  <span className={`text-[11px] ${done ? "text-slate-700" : "text-slate-500"}`}>
                     گام {range.step}
                   </span>
                 )}
