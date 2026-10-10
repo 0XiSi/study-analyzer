@@ -56,12 +56,6 @@ export default function Home() {
       <div className="mx-auto max-w-7xl px-4 py-8">
         {sessions.length === 0 ? (
         <section>
-          <div className={'flex justify-around my-7'}>
-            <Link href={'/showPlan'}>نمایشگر برنامه</Link>
-            <Link href={'/planner'}>برنامه ریز</Link>
-            <Link href={'/train'}>تمرین جدول تناوبی</Link>
-            <Link href={'/learn'}>حفظ جدول تناوبی</Link>
-          </div>
             <FileUploader onFile={handleFile} />
         </section>
         ) : (
