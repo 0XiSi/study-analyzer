@@ -1057,10 +1057,10 @@ export default function Page() {
       className="
         min-h-dvh
         bg-[#08090c]
-        px-3 py-4
+        px-3 pb-4
         text-slate-100
         sm:px-4
-        lg:px-5 lg:py-5
+        lg:px-5 lg:pb-5
       "
     >
       <div className="mx-auto flex-col w-full items-center justify-center max-w-[1900px]">
