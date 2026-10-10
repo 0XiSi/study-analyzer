@@ -1,5 +1,11 @@
+export type SubjectRangeConfig = {
+  range: string;
+  step: number;
+};
 export type SubjectConfig = {
   name: string;
+  /** Independent range steps. Takes precedence over legacy range/step fields. */
+  ranges?: SubjectRangeConfig[];
   range?: string | string[];
   start?: number;
   end?: number;
@@ -20,31 +26,79 @@ function uniqueSorted(values: number[]): number[] {
   return [...new Set(values)].sort((a, b) => a - b);
 }
 
-export function buildTests(subject: SubjectConfig): number[] {
+type SubjectTestData = {
+  tests: number[];
+  stepByTest: Map<number, number>;
+  defaultStep: number;
+};
+
+function validateStep(stepValue: unknown): number {
+  const step = Number(stepValue ?? 1);
+  if (!Number.isInteger(step) || step <= 0) {
+    throw new Error(`Invalid step: ${step}. Step must be a positive integer.`);
+  }
+  return step;
+}
+
+function buildSubjectTestData(subject: SubjectConfig): SubjectTestData {
+  const defaultStep = validateStep(subject.step ?? 1);
+
   if ('tests' in subject) {
-    const tests = (subject.tests ?? []).map(Number);
+    const tests = uniqueSorted((subject.tests ?? []).map(Number));
     if (!tests.length) throw new Error("Subject has an empty 'tests' list.");
-    return uniqueSorted(tests);
+    return {
+      tests,
+      stepByTest: new Map(tests.map((test) => [test, defaultStep])),
+      defaultStep,
+    };
   }
-  const step = Number(subject.step ?? 1);
-  if (step <= 0 || !Number.isInteger(step)) throw new Error(`Invalid step: ${step}. Step must be > 0.`);
-  if ('range' in subject) {
-    const ranges = typeof subject.range === 'string' ? [subject.range] : subject.range;
-    if (!Array.isArray(ranges) || !ranges.length) throw new Error("Subject 'range' must be a string or a non-empty list of ranges.");
-    const tests: number[] = [];
-    for (const rangeValue of ranges) {
-      let [start, end] = parseRange(String(rangeValue));
-      if (start > end) [start, end] = [end, start];
-      for (let value = start; value <= end; value += step) tests.push(value);
+
+  let configuredRanges: { range: string; step: number }[];
+  if (Array.isArray(subject.ranges)) {
+    if (!subject.ranges.length) {
+      throw new Error("Subject 'ranges' must be a non-empty list of ranges.");
     }
-    return uniqueSorted(tests);
+    configuredRanges = subject.ranges.map((item) => {
+      if (!item || typeof item.range !== 'string') {
+        throw new Error("Every subject range must contain a string 'range'.");
+      }
+      return { range: item.range, step: validateStep(item.step) };
+    });
+  } else if ('range' in subject) {
+    const ranges = typeof subject.range === 'string' ? [subject.range] : subject.range;
+    if (!Array.isArray(ranges) || !ranges.length) {
+      throw new Error("Subject 'range' must be a string or a non-empty list of ranges.");
+    }
+    // Backwards compatibility: old configuration applies one step to every range.
+    configuredRanges = ranges.map((range) => ({ range: String(range), step: defaultStep }));
+  } else {
+    if (subject.start === undefined || subject.end === undefined) {
+      throw new Error("Subject must contain 'ranges', 'range', or both 'start' and 'end'.");
+    }
+    configuredRanges = [{ range: `${subject.start}-${subject.end}`, step: defaultStep }];
   }
-  if (subject.start === undefined || subject.end === undefined) throw new Error("Subject must contain either 'range', or both 'start' and 'end'.");
-  let { start, end } = subject as { start: number; end: number };
-  if (start > end) [start, end] = [end, start];
-  const tests: number[] = [];
-  for (let value = start; value <= end; value += step) tests.push(value);
-  return tests;
+
+  const stepByTest = new Map<number, number>();
+  for (const configured of configuredRanges) {
+    let [start, end] = parseRange(configured.range);
+    if (start > end) [start, end] = [end, start];
+    for (let value = start; value <= end; value += configured.step) {
+      // If ranges overlap, count each test once and use the first range's step
+      // when formatting its sequence in output.txt.
+      if (!stepByTest.has(value)) stepByTest.set(value, configured.step);
+    }
+  }
+
+  if (!stepByTest.size) throw new Error('A subject must include at least one test.');
+  return {
+    tests: uniqueSorted([...stepByTest.keys()]),
+    stepByTest,
+    defaultStep,
+  };
+}
+
+export function buildTests(subject: SubjectConfig): number[] {
+  return buildSubjectTestData(subject).tests;
 }
 
 function splitEvenly(items: number[], parts: number): Chunk[] {
@@ -119,18 +173,40 @@ function optimizeChoiceGroup(baseDailyTotals: number[], chunksBySubject: Record<
   return dp(Array(subjectIds.length).fill(0), -1).path;
 }
 
-function formatChunk(chunk: number[], step: number): string {
+function formatChunk(
+  chunk: number[],
+  stepByTest: Map<number, number>,
+  defaultStep: number,
+): string {
   if (!chunk.length) throw new Error('Chunk cannot be empty.');
-  if (chunk.length === 1) return `${chunk[0]} [1]`;
-  const ranges: [number, number][] = [];
-  let start = chunk[0], previous = chunk[0];
+
+  const formatSegment = (start: number, end: number, step: number) => {
+    if (start === end) return String(start);
+    return step === 1
+      ? `${start}–${end}`
+      : `${start}–${end} with jump ${step}`;
+  };
+
+  const segments: string[] = [];
+  let start = chunk[0];
+  let previous = chunk[0];
+  let currentStep = stepByTest.get(chunk[0]) ?? defaultStep;
+
   for (const value of chunk.slice(1)) {
-    if (value !== previous + step) { ranges.push([start, previous]); start = value; }
+    const valueStep = stepByTest.get(value) ?? defaultStep;
+    if (valueStep === currentStep && value === previous + currentStep) {
+      previous = value;
+      continue;
+    }
+
+    segments.push(formatSegment(start, previous, currentStep));
+    start = value;
     previous = value;
+    currentStep = valueStep;
   }
-  ranges.push([start, previous]);
-  const formatted = ranges.map(([a, b]) => a === b ? String(a) : step === 1 ? `${a}–${b}` : `${a}–${b} with jump ${step}`);
-  return `${formatted.join(', ')} [${chunk.length}]`;
+
+  segments.push(formatSegment(start, previous, currentStep));
+  return `${segments.join(', ')} [${chunk.length}]`;
 }
 
 export function validateConfig(config: PlannerConfig): void {
@@ -173,9 +249,12 @@ export function generatePlan(config: PlannerConfig): string {
   const days = Number(config.days), subjects = config.subjects, schedule = config.schedule;
   const testsBySubject: Record<string, number[]> = {};
   const stepBySubject: Record<string, number> = {};
+  const testStepsBySubject: Record<string, Map<number, number>> = {};
   for (const [id, subject] of Object.entries(subjects)) {
-    testsBySubject[id] = buildTests(subject);
-    stepBySubject[id] = Number(subject.step ?? 1);
+    const data = buildSubjectTestData(subject);
+    testsBySubject[id] = data.tests;
+    stepBySubject[id] = data.defaultStep;
+    testStepsBySubject[id] = data.stepByTest;
   }
   const normalChunks: Record<string, Chunk[]> = {};
   for (const item of schedule) if ('subject' in item) normalChunks[item.subject] = splitEvenly(testsBySubject[item.subject], days);
@@ -204,12 +283,12 @@ export function generatePlan(config: PlannerConfig): string {
       if ('subject' in item) {
         const id = item.subject;
         if (!(id in result[day])) continue;
-        parts.push(`${subjects[id].name}: ${formatChunk(result[day][id], stepBySubject[id])}`);
+        parts.push(`${subjects[id].name}: ${formatChunk(result[day][id], testStepsBySubject[id], stepBySubject[id])}`);
       } else {
         for (const rawId of item.one_of) {
           const id = String(rawId);
           if (!(id in result[day])) continue;
-          parts.push(`${subjects[id].name}: ${formatChunk(result[day][id], stepBySubject[id])}`);
+          parts.push(`${subjects[id].name}: ${formatChunk(result[day][id], testStepsBySubject[id], stepBySubject[id])}`);
           break;
         }
       }

@@ -33,12 +33,14 @@ const starter: PlannerConfig = {
   subjects: {
     calculus: {
       name: 'حسابان',
-      range: ['1724-1800', '1459-1511'],
-      step: 2,
+      ranges: [
+        { range: '1724-1800', step: 2 },
+        { range: '1459-1511', step: 2 },
+      ],
     },
-    physics: { name: 'فیزیک', range: '850-1010', step: 2 },
-    chemistry: { name: 'شیمی', range: '155-256', step: 1 },
-    geometry: { name: 'هندسه', range: '783-888', step: 1 },
+    physics: { name: 'فیزیک', ranges: [{ range: '850-1010', step: 2 }] },
+    chemistry: { name: 'شیمی', ranges: [{ range: '155-256', step: 1 }] },
+    geometry: { name: 'هندسه', ranges: [{ range: '783-888', step: 1 }] },
   },
   schedule: [
     { subject: 'calculus' },
@@ -47,21 +49,38 @@ const starter: PlannerConfig = {
   ],
 };
 
+type RangeDraft = { range: string; step: string };
+
 type SubjectDraft = {
   id: string;
   name: string;
-  ranges: string;
-  step: string;
+  ranges: RangeDraft[];
 };
 
-const toDraft = (id: string, subject: SubjectConfig): SubjectDraft => ({
-  id,
-  name: subject.name,
-  ranges: Array.isArray(subject.range)
-    ? subject.range.join(', ')
-    : subject.range ?? `${subject.start ?? ''}-${subject.end ?? ''}`,
-  step: String(subject.step ?? 1),
-});
+const toDraft = (id: string, subject: SubjectConfig): SubjectDraft => {
+  const ranges: RangeDraft[] = Array.isArray(subject.ranges)
+    ? subject.ranges.map((item) => ({
+        range: item.range,
+        step: String(item.step ?? 1),
+      }))
+    : (Array.isArray(subject.range)
+        ? subject.range
+        : subject.range
+          ? [subject.range]
+          : subject.start !== undefined && subject.end !== undefined
+            ? [`${subject.start}-${subject.end}`]
+            : [''])
+      .map((range) => ({
+        range,
+        step: String(subject.step ?? 1),
+      }));
+
+  return {
+    id,
+    name: subject.name,
+    ranges: ranges.length ? ranges : [{ range: '', step: String(subject.step ?? 1) }],
+  };
+};
 
 const RETURNED_OUTPUT_KEY = 'study-planner-returned-output';
 
@@ -158,13 +177,29 @@ export default function PlannerPage() {
       return;
     }
 
-    const ranges = draft.ranges
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean);
+    const ranges = draft.ranges.map((item) => ({
+      range: item.range.trim(),
+      step: Number(item.step),
+    }));
 
-    if (!ranges.length) {
-      setError('حداقل یک بازه تست وارد کنید؛ مثلاً 1724-1800.');
+    if (!ranges.length || ranges.some((item) => !item.range)) {
+      setError('برای هر ردیف یک بازه وارد کنید؛ مثلاً 1724-1800.');
+      return;
+    }
+
+    const invalidRange = ranges.find(
+      (item) => !/^\d+\s*[-–—]\s*\d+$/.test(item.range),
+    );
+    if (invalidRange) {
+      setError(`بازهٔ «${invalidRange.range}» معتبر نیست. از قالب 1724-1800 استفاده کنید.`);
+      return;
+    }
+
+    const invalidStep = ranges.find(
+      (item) => !Number.isInteger(item.step) || item.step <= 0,
+    );
+    if (invalidStep) {
+      setError('گام هر بازه باید یک عدد صحیح بزرگ‌تر از صفر باشد.');
       return;
     }
 
@@ -179,8 +214,7 @@ export default function PlannerPage() {
 
     next[id] = {
       name: draft.name.trim(),
-      range: ranges.length === 1 ? ranges[0] : ranges,
-      step: Number(draft.step),
+      ranges,
     };
 
     setConfigAndResetOutput({
@@ -211,7 +245,7 @@ export default function PlannerPage() {
       return;
     }
 
-    const subject = { name: newName.trim(), range: '1-20', step: 1 };
+    const subject = { name: newName.trim(), ranges: [{ range: '1-20', step: 1 }] };
 
     setConfigAndResetOutput({
       ...config,
@@ -248,7 +282,7 @@ export default function PlannerPage() {
       updateSubjectDraft(nextId);
     } else {
       setSelected('');
-      setDraft({ id: '', name: '', ranges: '', step: '1' });
+      setDraft({ id: '', name: '', ranges: [{ range: '', step: '1' }] });
     }
 
     setError('');
@@ -599,48 +633,102 @@ export default function PlannerPage() {
                     </button>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-[1fr_120px]">
-                    <div>
-                      <label className="field-label">نام نمایشی درس</label>
-                      <input
-                        value={draft.name}
-                        onChange={(event) =>
-                          setDraft({ ...draft, name: event.target.value })
-                        }
-                        className="field-input"
-                        placeholder="مثلاً حسابان"
-                      />
-                    </div>
-                    <div>
-                      <label className="field-label">گام تست</label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={draft.step}
-                        onChange={(event) =>
-                          setDraft({ ...draft, step: event.target.value })
-                        }
-                        className="field-input"
-                        dir="ltr"
-                      />
-                    </div>
+                  <div>
+                    <label className="field-label">نام نمایشی درس</label>
+                    <input
+                      value={draft.name}
+                      onChange={(event) =>
+                        setDraft({ ...draft, name: event.target.value })
+                      }
+                      className="field-input"
+                      placeholder="مثلاً حسابان"
+                    />
                   </div>
 
                   <div className="mt-4">
-                    <label className="field-label">بازه‌های تست</label>
-                    <input
-                      value={draft.ranges}
-                      onChange={(event) =>
-                        setDraft({ ...draft, ranges: event.target.value })
-                      }
-                      className="field-input"
-                      placeholder="1724-1800, 1459-1511"
-                      dir="ltr"
-                    />
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <label className="field-label mb-0">بازه‌های تست و گام هر بازه</label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDraft({
+                            ...draft,
+                            ranges: [...draft.ranges, { range: '', step: '1' }],
+                          })
+                        }
+                        className="btn-secondary"
+                      >
+                        <Plus size={15} /> افزودن بازه
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {draft.ranges.map((range, index) => (
+                        <div
+                          key={index}
+                          className="grid items-end gap-3 rounded-xl border border-white/10 bg-white/[.02] p-3 sm:grid-cols-[minmax(0,1fr)_112px_auto]"
+                        >
+                          <div className="min-w-0">
+                            <label className="field-label">بازهٔ {index + 1}</label>
+                            <input
+                              value={range.range}
+                              onChange={(event) =>
+                                setDraft({
+                                  ...draft,
+                                  ranges: draft.ranges.map((item, itemIndex) =>
+                                    itemIndex === index
+                                      ? { ...item, range: event.target.value }
+                                      : item,
+                                  ),
+                                })
+                              }
+                              className="field-input"
+                              placeholder="1724-1800"
+                              dir="ltr"
+                            />
+                          </div>
+                          <div>
+                            <label className="field-label">گام این بازه</label>
+                            <input
+                              type="number"
+                              min={1}
+                              step={1}
+                              value={range.step}
+                              onChange={(event) =>
+                                setDraft({
+                                  ...draft,
+                                  ranges: draft.ranges.map((item, itemIndex) =>
+                                    itemIndex === index
+                                      ? { ...item, step: event.target.value }
+                                      : item,
+                                  ),
+                                })
+                              }
+                              className="field-input"
+                              dir="ltr"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDraft({
+                                ...draft,
+                                ranges: draft.ranges.filter((_, itemIndex) => itemIndex !== index),
+                              })
+                            }
+                            disabled={draft.ranges.length === 1}
+                            className="icon-button mb-0.5 disabled:cursor-not-allowed disabled:opacity-30"
+                            aria-label={`حذف بازهٔ ${index + 1}`}
+                            title="حذف این بازه"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
                     <p className="mt-2 text-xs leading-5 text-slate-500">
-                      برای وارد کردن چند بازه، آن‌ها را با ویرگول جدا کنید. بازه‌های
-                      برعکس به‌صورت خودکار اصلاح می‌شوند و شماره‌های تکراری حذف
-                      خواهند شد.
+                      برای هر بازه، گام مستقل تعیین کنید. مثلاً بازهٔ 100-120 با گام 2، تست‌های 100، 102، 104 و ... را شامل می‌شود. بازه‌های برعکس خودکار اصلاح و شماره‌های تکراری حذف می‌شوند.
                     </p>
                   </div>
 

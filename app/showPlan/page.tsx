@@ -22,6 +22,7 @@ import {
 type Range = {
   from: number;
   to: number;
+  step?: number;
 };
 
 type Part = {
@@ -141,17 +142,22 @@ function getSubjectStyle(subject: string): SubjectStyle {
 */
 
 function parseRange(rangeText: string): Range | null {
-  const match = rangeText
-    .trim()
-    .match(/^(\d+)\s*[–—-]\s*(\d+)$/);
-
-  if (!match) {
-    return null;
+  const value = rangeText.trim();
+  const single = value.match(/^(\d+)$/);
+  if (single) {
+    const number = Number(single[1]);
+    return { from: number, to: number };
   }
+
+  const match = value.match(
+    /^(\d+)\s*[–—-]\s*(\d+)(?:\s+with jump\s+(\d+))?$/,
+  );
+  if (!match) return null;
 
   return {
     from: Number(match[1]),
     to: Number(match[2]),
+    ...(match[3] ? { step: Number(match[3]) } : {}),
   };
 }
 
@@ -187,34 +193,21 @@ function parseSchedule(text: string): Day[] {
     const parts: Part[] = [];
 
     for (const entry of entries) {
-      const match = entry.match(
-        /^(.+?):\s*(.+?)(?:\s+with jump\s+(\d+))?\s*\[(\d+)\]$/
-      );
+      const match = entry.match(/^(.+?):\s*(.*?)\s*\[(\d+)\]$/);
+      if (!match) continue;
 
-      if (!match) {
-        continue;
-      }
-
-      const [, subject, rangesText, step, count] = match;
-
+      const [, subject, rangesText, count] = match;
       const ranges = rangesText
-        .split(",")
+        .split(',')
         .map((range) => parseRange(range))
         .filter((range): range is Range => range !== null);
 
-      if (ranges.length === 0) {
-        continue;
-      }
+      if (ranges.length === 0) continue;
 
       parts.push({
         subject: subject.trim(),
         ranges,
         count: Number(count),
-        ...(step
-          ? {
-              step: Number(step),
-            }
-          : {}),
       });
     }
 
@@ -354,37 +347,19 @@ function PartCard({
                     font-medium
                     tabular-nums
                     2xl:text-[13px]
-                    ${
-                      done
-                        ? "text-slate-600"
-                        : "text-slate-400"
-                    }
+                    ${done ? "text-slate-600" : "text-slate-400"}
                   `}
                 >
-                  {range.from} ← {range.to}
+                  {range.from === range.to ? range.from : `${range.from} ← ${range.to}`}
                 </span>
+                {range.step !== undefined && range.step > 1 && (
+                  <span className={`text-[9px] ${done ? "text-slate-700" : "text-slate-500"}`}>
+                    گام {range.step}
+                  </span>
+                )}
               </div>
             ))}
 
-            {part.step !== undefined && (
-              <div className="flex items-center gap-1.5 whitespace-nowrap">
-                <span className="h-0.5 w-0.5 rounded-full bg-slate-600" />
-
-                <span
-                  className={`
-                    text-[9px]
-                    2xl:text-[8px]
-                    ${
-                      done
-                        ? "text-slate-700"
-                        : "text-slate-500"
-                    }
-                  `}
-                >
-                  گام {part.step}
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Remaining */}
