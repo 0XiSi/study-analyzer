@@ -1130,19 +1130,19 @@ export default function Page() {
           </div>
         </label>
 
-        {days.length > 0 && (
-          <div className="mb-4 flex justify-start">
-            <button
-              type="button"
-              onClick={sendBackToStudio}
-              className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-3 py-2.5 font-vazirmatn text-xs font-bold text-blue-200 transition hover:border-blue-300/30 hover:bg-blue-500/15"
-              title="بازگرداندن متن دقیق output.txt به استودیو"
-            >
-              <ArrowLeft size={15} />
-              بازگرداندن خروجی به استودیو
-            </button>
-          </div>
-        )}
+        {/*{days.length > 0 && (*/}
+        {/*  <div className="mb-4 flex justify-start">*/}
+        {/*    <button*/}
+        {/*      type="button"*/}
+        {/*      onClick={sendBackToStudio}*/}
+        {/*      className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-3 py-2.5 font-vazirmatn text-xs font-bold text-blue-200 transition hover:border-blue-300/30 hover:bg-blue-500/15"*/}
+        {/*      title="بازگرداندن متن دقیق output.txt به استودیو"*/}
+        {/*    >*/}
+        {/*      <ArrowLeft size={15} />*/}
+        {/*      بازگرداندن خروجی به استودیو*/}
+        {/*    </button>*/}
+        {/*  </div>*/}
+        {/*)}*/}
 
         {/* Error */}
         {error && (
@@ -1274,13 +1274,13 @@ export default function Page() {
 
         {/* Empty state */}
         {days.length === 0 && !error && (
-          <div className={'flex-col-reverse justify-between items-center w-[40%] text-amber-200'}>
-            <div className="py-10 text-center font-vazirmatn font-bold text-10">
+          <div className={'flex-col-reverse justify-start items-start pr-8 w-[40%] text-white'}>
+            <div className="py-5 text-start font-vazirmatn font-bold text-10">
               فایل برنامه را انتخاب کنید
               یا از نو برنامه ریزی کنید
             </div>
-            <div className={'flex justify-center items-center gap-2'}>
-              <Link className={"border-2 border-amber-500 rounded-xl bg-amber-900 w-30 h-10 font-vazirmatn font-bold text-10 flex justify-center items-center"} href={'/planner'}>برنامه ریز</Link>
+            <div className={'flex justify-start items-center gap-2'}>
+              <Link className={"border-2 border-gray-500 rounded-xl bg-gray-900 w-30 h-10 font-vazirmatn font-bold text-10 flex justify-center items-center"} href={'/planner'}>برنامه ریز</Link>
             </div>
           </div>
         )}
