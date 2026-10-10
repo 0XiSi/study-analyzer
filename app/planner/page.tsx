@@ -455,66 +455,71 @@ export default function PlannerPage() {
 
   return (
     <main
-      dir="rtl"
-      lang="fa"
-      className="min-h-screen bg-[#080d18] font-vazirmatn text-slate-100"
-    >
-      <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
+  dir="rtl"
+  lang="fa"
+  className="min-h-[100dvh] w-full overflow-x-hidden bg-[#080d18] font-vazirmatn text-slate-100"
+>
+  <div className="mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
         <header className="mb-7 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 md:flex-row md:items-center">
-          <div className="flex items-center gap-4">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-500/15 text-blue-300 ring-1 ring-blue-400/25">
-              <WandSparkles size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold tracking-wide text-blue-300">
-                سامانهٔ مطالعه
-              </p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-                برنامه‌ریز کنکور
-              </h1>
-              <p className="mt-1 text-sm text-slate-400">
-                برنامه‌ای متعادل بسازید و فایل دقیق{' '}
-                <code className="text-slate-300" dir="ltr">
-                  output.txt
-                </code>{' '}
-                را خروجی بگیرید.
-              </p>
-            </div>
-          </div>
+          <div className="flex items-center gap-3 sm:gap-4">
+  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blue-500/15 text-blue-300 ring-1 ring-blue-400/25 sm:h-12 sm:w-12">
+    <WandSparkles size={22} />
+  </div>
 
-          <div className="flex flex-wrap gap-2">
-            <button onClick={saveLocal} className="btn-secondary">
-              <Save size={16} /> ذخیرهٔ پیکربندی
-            </button>
-            <button onClick={loadLocal} className="btn-secondary">
-              <RotateCcw size={16} /> بارگذاری ذخیره‌شده
-            </button>
-            <button
-              onClick={() => importRef.current?.click()}
-              className="btn-secondary"
-            >
-              <FileUp size={16} /> ورود فایل JSON
-            </button>
-            <input
-              ref={importRef}
-              type="file"
-              accept=".json,application/json"
-              className="hidden"
-              onChange={importConfig}
-            />
-            <button
-              onClick={() =>
-                download(
-                  'planner-config.json',
-                  JSON.stringify(config, null, 2),
-                  'application/json',
-                )
-              }
-              className="btn-secondary"
-            >
-              <Download size={16} /> خروجی پیکربندی
-            </button>
-          </div>
+  <div className="min-w-0">
+    <p className="text-xs font-semibold tracking-wide text-blue-300">
+      سامانهٔ مطالعه
+    </p>
+
+    <h1 className="mt-1 text-xl font-bold tracking-tight sm:text-3xl">
+      برنامه‌ریز کنکور
+    </h1>
+
+    <p className="mt-1 text-xs leading-6 text-slate-400 sm:text-sm">
+      برنامه‌ای متعادل بسازید و فایل{' '}
+      <code className="text-slate-300" dir="ltr">output.txt</code>{' '}
+      را خروجی بگیرید.
+    </p>
+  </div>
+</div>
+
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+  <button onClick={saveLocal} className="btn-secondary w-full sm:w-auto">
+    <Save size={16} /> ذخیرهٔ پیکربندی
+  </button>
+
+  <button onClick={loadLocal} className="btn-secondary w-full sm:w-auto">
+    <RotateCcw size={16} /> بارگذاری ذخیره‌شده
+  </button>
+
+  <button
+    onClick={() => importRef.current?.click()}
+    className="btn-secondary w-full sm:w-auto"
+  >
+    <FileUp size={16} /> ورود فایل JSON
+  </button>
+
+  <input
+    ref={importRef}
+    type="file"
+    accept=".json,application/json"
+    className="hidden"
+    onChange={importConfig}
+  />
+
+  <button
+    onClick={() =>
+      download(
+        'planner-config.json',
+        JSON.stringify(config, null, 2),
+        'application/json',
+      )
+    }
+    className="btn-secondary w-full sm:w-auto"
+  >
+    <Download size={16} /> خروجی پیکربندی
+  </button>
+</div>
         </header>
 
         {(visibleError || notice) && (

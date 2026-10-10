@@ -18,7 +18,14 @@ export default function Header() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <header className="sticky top-3 z-50 w-full px-3 sm:px-6">
+      <header
+        className="
+          fixed inset-x-0 bottom-0 z-50 w-full
+          px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]
+          sm:sticky sm:top-3 sm:bottom-auto
+          sm:px-6 sm:pb-0
+        "
+      >
         <nav
           dir="rtl"
           aria-label="ناوبری اصلی"
@@ -26,9 +33,9 @@ export default function Header() {
             mx-auto flex w-fit max-w-full flex-wrap
             items-center justify-center gap-1 sm:gap-2
             rounded-2xl border border-white/10
-            bg-background/60 p-2
-            shadow-lg shadow-black/5
-            backdrop-filter backdrop-blur-sm bg-opacity-0
+            bg-background/80 p-2
+            shadow-lg shadow-black/10
+            backdrop-blur-xl backdrop-saturate-150
           "
         >
           {navItems.map(({ href, label }) => {
