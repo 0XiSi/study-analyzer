@@ -413,9 +413,9 @@ export default function PlannerPage() {
     event.target.value = '';
   }
 
-  //const VIEWER_URL = 'http://localhost:3000/showPlan';
+  //const VIEWER_URL = 'http://localhost:3000';
   // برای انتشار، خط بالا را با نشانی سایت جایگزین کنید:
-   const VIEWER_URL = 'https://study-analyzer-one.vercel.app/showPlan';
+   const VIEWER_URL = 'https://study-analyzer-one.vercel.app';
 
   function openInViewer() {
     if (!output || visibleError) return;

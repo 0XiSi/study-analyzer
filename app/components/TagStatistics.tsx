@@ -34,7 +34,7 @@ export function TagStatistics({
         </h2>
 
         <p className="mt-1 text-sm text-slate-400">
-          توزیع زمان مطالعه بین تگ‌های باقی‌مانده
+          توزیع زمان مطالعه بین تگ‌ها
         </p>
       </div>
 
@@ -52,7 +52,7 @@ export function TagStatistics({
 
             return (
               <div key={tag}>
-                <div className="mb-2 flex items-center justify-between gap-4">
+                <div className="mb-2 flex items-center gap-4">
                   <span className="truncate text-sm font-medium text-slate-200">
                     {tag}
                   </span>
