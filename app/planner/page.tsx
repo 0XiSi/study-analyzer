@@ -457,10 +457,10 @@ export default function PlannerPage() {
     <main
   dir="rtl"
   lang="fa"
-  className="min-h-[100dvh] w-full overflow-x-hidden bg-[#080d18] font-vazirmatn text-slate-100"
+  className="box-border min-h-[100dvh] w-full min-w-0 max-w-full overflow-x-hidden bg-[#080d18] font-vazirmatn text-slate-100"
 >
-  <div className="mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
-        <header className="mb-7 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 md:flex-row md:items-center">
+  <div className="box-border mx-auto w-full min-w-0 max-w-[1500px] px-3 py-4 pb-28 sm:px-6 sm:py-6 sm:pb-28 lg:px-8">
+        <header className="mb-7 flex min-w-0 flex-col justify-between gap-4 border-b border-white/10 pb-6 md:flex-row md:items-center">
           <div className="flex items-center gap-3 sm:gap-4">
   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blue-500/15 text-blue-300 ring-1 ring-blue-400/25 sm:h-12 sm:w-12">
     <WandSparkles size={22} />
@@ -481,7 +481,7 @@ export default function PlannerPage() {
   </div>
 </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap">
   <button onClick={saveLocal} className="btn-secondary w-full sm:w-auto">
     <Save size={16} /> ذخیرهٔ پیکربندی
   </button>
@@ -545,9 +545,9 @@ export default function PlannerPage() {
 
 
 
-        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)]">
-          <div className="space-y-6">
-          <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="grid w-full min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)]">
+          <div className="w-full min-w-0 space-y-6">
+          <section className="mb-6 grid w-full min-w-0 grid-cols-[repeat(2,minmax(0,1fr))] gap-2 sm:gap-3 lg:grid-cols-3">
           <Stat
             icon={<CalendarDays size={18} />}
             label="روزهای برنامه"
@@ -609,10 +609,10 @@ export default function PlannerPage() {
               </div>
 
               {selected && config.subjects[selected] ? (
-                <div className="rounded-2xl border border-white/10 bg-[#0b1220] p-4 sm:p-5">
+                <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-[#0b1220] p-3 sm:p-5">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs text-slate-500">شناسهٔ درس</p>
+                      <p className="break-words text-xs text-slate-500">شناسهٔ درس</p>
                       <input
                         value={draft.id}
                         onChange={(event) =>
@@ -646,7 +646,7 @@ export default function PlannerPage() {
 
                   <div className="mt-4">
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <label className="field-label mb-0">بازه‌های تست و گام هر بازه</label>
+                      <label className="field-label mb-0 min-w-0 break-words">بازه‌های تست و گام هر بازه</label>
                       <button
                         type="button"
                         onClick={() =>
@@ -665,7 +665,7 @@ export default function PlannerPage() {
                       {draft.ranges.map((range, index) => (
                         <div
                           key={index}
-                          className="grid items-end gap-3 rounded-xl border border-white/10 bg-white/[.02] p-3 sm:grid-cols-[minmax(0,1fr)_112px_auto]"
+                          className="grid min-w-0 items-end gap-3 rounded-xl border border-white/10 bg-white/[.02] p-3 min-[420px]:grid-cols-[minmax(0,1fr)_92px_auto] sm:grid-cols-[minmax(0,1fr)_112px_auto]"
                         >
                           <div className="min-w-0">
                             <label className="field-label">بازهٔ {index + 1}</label>
@@ -741,7 +741,7 @@ export default function PlannerPage() {
                 </p>
               )}
 
-              <div className="mt-4 grid gap-2 rounded-2xl border border-dashed border-white/15 p-4 sm:grid-cols-[.8fr_1fr_auto]">
+              <div className="mt-4 grid w-full min-w-0 grid-cols-1 gap-2 rounded-2xl border border-dashed border-white/15 p-3 sm:p-4 min-[480px]:grid-cols-2 sm:grid-cols-[minmax(0,.8fr)_minmax(0,1fr)_auto]">
                 <input
                   value={newId}
                   onChange={(event) => setNewId(event.target.value)}
@@ -809,7 +809,7 @@ export default function PlannerPage() {
                 <label className="field-label" htmlFor="regular-subject">
                   افزودن یک درس که هر روز قراره داشته باشمش
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 min-[420px]:flex-row">
                   <select
                     id="regular-subject"
                     className="field-input"
@@ -832,7 +832,7 @@ export default function PlannerPage() {
                       addRegular(element.value);
                       element.value = '';
                     }}
-                    className="btn-secondary"
+                    className="btn-secondary w-full shrink-0 min-[420px]:w-auto"
                   >
                     افزودن
                   </button>
@@ -874,9 +874,9 @@ export default function PlannerPage() {
             </Panel>
           </div>
 
-          <div className="xl:sticky xl:top-5">
-            <section className="overflow-hidden rounded-2xl border border-blue-400/20 bg-[#0b1220] shadow-2xl shadow-black/20">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div className="w-full min-w-0 max-w-full xl:sticky xl:top-5">
+            <section className="box-border w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-blue-400/20 bg-[#0b1220] shadow-2xl shadow-black/20">
+              <div className="flex w-full min-w-0 flex-col gap-3 border-b border-white/10 px-3 py-3 sm:px-5 sm:py-4 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -899,32 +899,32 @@ export default function PlannerPage() {
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="grid w-full min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-2 xl:flex xl:w-auto xl:flex-wrap">
                   <button
                     onClick={copyOutput}
                     disabled={!output || !!visibleError}
-                    className="btn-secondary"
+                    className="btn-secondary w-full xl:w-auto"
                   >
                     <Copy size={15} /> کپی
                   </button>
                   <button
                     onClick={() => download('output.txt', output)}
                     disabled={!output || !!visibleError}
-                    className="btn-primary"
+                    className="btn-primary w-full xl:w-auto"
                   >
                     <Download size={15} /> دانلود فایل txt
                   </button>
                   <button
                     onClick={openInViewer}
                     disabled={!output || !!visibleError}
-                    className="btn-primary"
+                    className="btn-primary w-full min-[420px]:col-span-2 xl:col-span-1 xl:w-auto"
                   >
                     <Send size={15} /> ارسال به نمایشگر مطالعه
                   </button>
                 </div>
               </div>
 
-              <div className="border-b border-white/[.06] bg-[#080d18] px-5 py-3">
+              <div className="border-b border-white/[.06] bg-[#080d18] px-3 py-3 sm:px-5">
                 <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
                   <span dir="ltr">output.txt</span>
                   <span>
@@ -936,7 +936,7 @@ export default function PlannerPage() {
               </div>
 
               <pre
-                className="min-h-[380px] overflow-auto p-5 font-mono text-[12px] leading-7 text-slate-200 sm:text-[13px]"
+                className="block min-h-[300px] w-full min-w-0 max-w-full overflow-x-auto overflow-y-auto p-3 font-mono text-[11px] leading-6 text-slate-200 sm:min-h-[380px] sm:p-5 sm:text-[13px] sm:leading-7"
                 dir="ltr"
               >
                 {output ||
@@ -968,6 +968,16 @@ export default function PlannerPage() {
       </div>
 
       <style jsx global>{`
+        main, main *, main *::before, main *::after {
+          box-sizing: border-box;
+        }
+
+        main > div {
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
+        }
+
         .field-label {
           display: block;
           margin-bottom: 7px;
@@ -978,8 +988,10 @@ export default function PlannerPage() {
         }
 
         .field-input {
+          box-sizing: border-box;
           width: 100%;
           min-width: 0;
+          max-width: 100%;
           border: 1px solid rgba(148, 163, 184, 0.18);
           border-radius: 10px;
           background: #080d18;
@@ -1057,6 +1069,30 @@ export default function PlannerPage() {
           background: rgba(255, 255, 255, 0.07);
           color: #fda4af;
         }
+
+        .btn-primary,
+        .btn-secondary {
+          min-width: 0;
+          max-width: 100%;
+          white-space: normal;
+          text-align: center;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+        }
+
+        .btn-primary svg,
+        .btn-secondary svg,
+        .icon-button svg {
+          flex-shrink: 0;
+        }
+
+        @media (max-width: 420px) {
+          .btn-primary,
+          .btn-secondary {
+            min-height: 42px;
+            padding: 9px 10px;
+          }
+        }
       `}</style>
     </main>
   );
@@ -1072,10 +1108,10 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-[#0e1626] p-4 shadow-xl shadow-black/10 sm:p-5">
+    <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-[#0e1626] p-3 shadow-xl shadow-black/10 sm:p-5">
       <div className="mb-5">
-        <h2 className="font-semibold tracking-tight text-slate-100">{title}</h2>
-        <p className="mt-1 text-xs leading-5 text-slate-500">{subtitle}</p>
+        <h2 className="break-words font-semibold tracking-tight text-slate-100">{title}</h2>
+        <p className="mt-1 break-words text-xs leading-5 text-slate-500">{subtitle}</p>
       </div>
       {children}
     </section>
@@ -1092,10 +1128,10 @@ function Stat({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0e1626] p-4">
-      <div className="mb-3 flex items-center gap-2 text-blue-300">
+    <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-[#0e1626] p-3 sm:p-4">
+      <div className="mb-3 flex min-w-0 flex-wrap items-center gap-2 text-blue-300">
         {icon}
-        <span className="text-xs text-slate-500">{label}</span>
+        <span className="min-w-0 break-words text-xs text-slate-500">{label}</span>
       </div>
       <p className="text-2xl font-semibold tracking-tight">{value}</p>
     </div>
