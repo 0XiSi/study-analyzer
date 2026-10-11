@@ -136,7 +136,6 @@ function StatCard({
 export default function FocusTimerPage() {
   const [hydrated, setHydrated] = useState(false);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  type TimerMode = 'focus' | 'break' | 'stopwatch';
 
   const [activeMode, setActiveMode] = useState<TimerMode>('focus');
   const [focusMinutes, setFocusMinutes] = useState(25);
@@ -437,7 +436,7 @@ export default function FocusTimerPage() {
   }, [filteredSessions, fromDate, toDate]);
 
   const maxDailyFocus = Math.max(1, ...dailyRows.map((row) => row.focusSec));
-  const goalReached = activeMode !== 'stopwatch' && targetSec !== null && elapsedSec >= targetSec;
+  const goalReached = targetSec !== null && elapsedSec >= targetSec;
   const progress = targetSec ? Math.min(100, (elapsedSec / targetSec) * 100) : 0;
   const rangeIsValid = Boolean(fromDate && toDate && fromDate <= toDate);
 
