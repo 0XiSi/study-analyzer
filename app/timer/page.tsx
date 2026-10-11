@@ -141,7 +141,7 @@ export default function FocusTimerPage() {
   const [focusMinutes, setFocusMinutes] = useState(25);
   const [breakMinutes, setBreakMinutes] = useState(5);
   const [clickEveryMinutes, setClickEveryMinutes] = useState(1);
-  const [clickSoundMs, setClickSoundMs] = useState(55);
+  const [clickSoundMs, setClickSoundMs] = useState(500);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -231,7 +231,7 @@ export default function FocusTimerPage() {
         setFocusMinutes(readNumber(saved.focusMinutes, 25, 1, 240));
         setBreakMinutes(readNumber(saved.breakMinutes, 5, 1, 120));
         setClickEveryMinutes(readNumber(saved.clickEveryMinutes ?? (Number(saved.clickEveryMinutes) / 60), 1, 1, 60));
-        setClickSoundMs(readNumber(saved.clickSoundMs, 55, 20, 250));
+        setClickSoundMs(readNumber(saved.clickSoundMs, 500, 500, 500));
         setSoundEnabled(typeof saved.soundEnabled === 'boolean' ? saved.soundEnabled : true);
         setFromDate(typeof saved.fromDate === 'string' && saved.fromDate ? saved.fromDate : defaultFrom);
         setToDate(typeof saved.toDate === 'string' && saved.toDate ? saved.toDate : today);
@@ -553,7 +553,7 @@ export default function FocusTimerPage() {
                   </button>
                 </div>
                 <div className="mb-3 rounded-xl pt-2 flex items-center justify-between gap-3">
-                  <img src="/cats/peach-cat-study-peach.gif" alt="گربه‌ی پیکسلی متحرک" draggable={false} className=" w-70 h-60 shrink-0 object-contain sm:h-10 sm:w-10" style={{ imageRendering: 'pixelated' }} />
+                  <img src="/cats/peach-cat-study-peach.gif" alt="گربه‌ی پیکسلی متحرک" draggable={false} className="w-70 h-60 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} />
                 </div>
               </div>
 
@@ -647,26 +647,6 @@ export default function FocusTimerPage() {
                     aria-label="فاصله صدای تیک بر حسب دقیقه"
                   />
                   <div className="mt-1 flex justify-between text-[10px] text-slate-600"><span>۱ دقیقه</span><span>۶۰ دقیقه</span></div>
-
-                  <div className="mt-4 flex items-center justify-between gap-4">
-                    <div>
-                      <div className="text-sm font-medium text-slate-200">طول صدای تیک</div>
-                      <div className="mt-1 text-xs text-slate-500">مدت هر صدای کوتاه</div>
-                    </div>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min={20}
-                        max={250}
-                        step={5}
-                        value={clickSoundMs}
-                        onChange={(event) => setClickSoundMs(readNumber(Number(event.target.value), 55, 20, 250))}
-                        className="w-20 rounded-xl border border-white/[0.08] bg-[#0a0e17] px-2 py-2 text-center text-sm text-white outline-none focus:border-sky-300/40"
-                        aria-label="طول صدای تیک به میلی‌ثانیه"
-                      />
-                      <span className="text-xs text-slate-500">ms</span>
-                    </label>
-                  </div>
                   <button
                     type="button"
                     onClick={() => playTone(1046, clickSoundMs, 'square', 0.028)}
