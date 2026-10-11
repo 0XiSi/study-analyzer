@@ -11,6 +11,7 @@ const navItems = [
   { href: '/analyze', label: 'روند مطالعه' },
   { href: '/train', label: 'تمرین جدول تناوبی' },
   { href: '/learn', label: 'حفظ جدول تناوبی' },
+  { href: '/timer', label: 'تایمر' },
 ];
 
 export default function Header() {
@@ -49,7 +50,7 @@ export default function Header() {
                 href={href}
                 aria-current={active ? 'page' : undefined}
                 className={`
-                  relative isolate rounded-xl px-3 py-2.5
+                  relative isolate rounded-xl px-1.5 py-1.5
                   text-sm font-medium whitespace-nowrap
                   transition-colors duration-200 sm:px-4
                   ${
