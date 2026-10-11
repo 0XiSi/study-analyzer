@@ -136,6 +136,8 @@ function StatCard({
 export default function FocusTimerPage() {
   const [hydrated, setHydrated] = useState(false);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  type TimerMode = 'focus' | 'break' | 'stopwatch';
+
   const [activeMode, setActiveMode] = useState<TimerMode>('focus');
   const [focusMinutes, setFocusMinutes] = useState(25);
   const [breakMinutes, setBreakMinutes] = useState(5);
@@ -229,7 +231,7 @@ export default function FocusTimerPage() {
         }
         setFocusMinutes(readNumber(saved.focusMinutes, 25, 1, 240));
         setBreakMinutes(readNumber(saved.breakMinutes, 5, 1, 120));
-        setClickEveryMinutes(readNumber(saved.clickEveryMinutes ?? (Number(saved.clickEverySeconds) / 60), 1, 1, 60));
+        setClickEveryMinutes(readNumber(saved.clickEveryMinutes ?? (Number(saved.clickEveryMinutes) / 60), 1, 1, 60));
         setClickSoundMs(readNumber(saved.clickSoundMs, 55, 20, 250));
         setSoundEnabled(typeof saved.soundEnabled === 'boolean' ? saved.soundEnabled : true);
         setFromDate(typeof saved.fromDate === 'string' && saved.fromDate ? saved.fromDate : defaultFrom);
