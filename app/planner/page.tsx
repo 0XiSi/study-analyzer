@@ -476,9 +476,7 @@ export default function PlannerPage() {
     </h1>
 
     <p className="mt-1 text-xs leading-6 text-slate-400 sm:text-sm">
-      برنامه‌ای متعادل بسازید و فایل{' '}
-      <code className="text-slate-300" dir="ltr">output.txt</code>{' '}
-      را خروجی بگیرید.
+      نوشتن برنامه مطالعه در کمترین زمان بطور بهینه{' '}
     </p>
   </div>
 </div>
@@ -545,7 +543,11 @@ export default function PlannerPage() {
           </div>
         )}
 
-        <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+
+
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)]">
+          <div className="space-y-6">
+          <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <Stat
             icon={<CalendarDays size={18} />}
             label="روزهای برنامه"
@@ -553,23 +555,15 @@ export default function PlannerPage() {
           />
           <Stat
             icon={<BookOpen size={18} />}
-            label="تعداد درس‌ها"
+            label="تعداد کل درس‌ها"
             value={String(Object.keys(config.subjects).length)}
           />
           <Stat
             icon={<FileText size={18} />}
-            label="موارد برنامه"
+            label="تعداد دروس در یک روز"
             value={String(config.schedule.length)}
           />
-          <Stat
-            icon={<WandSparkles size={18} />}
-            label="تعداد سطرهای خروجی"
-            value={output ? String(output.split('\n').length) : '—'}
-          />
         </section>
-
-        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)]">
-          <div className="space-y-6">
             <Panel
               title="تنظیمات برنامه"
               subtitle="تعداد روزهای برنامه را مشخص کنید."
@@ -590,7 +584,7 @@ export default function PlannerPage() {
                 dir="ltr"
               />
               <p className="mt-2 text-xs text-slate-500">
-                تست‌های هر درس عادی به‌صورت متوازن بین تمام روزها تقسیم می‌شوند.
+                تست‌های هر درس به‌صورت متوازن بین تمام روزها تقسیم می‌شوند.
               </p>
             </Panel>
 
@@ -733,7 +727,7 @@ export default function PlannerPage() {
                     </div>
 
                     <p className="mt-2 text-xs leading-5 text-slate-500">
-                      برای هر بازه، گام مستقل تعیین کنید. مثلاً بازهٔ 100-120 با گام 2، تست‌های 100، 102، 104 و ... را شامل می‌شود. بازه‌های برعکس خودکار اصلاح و شماره‌های تکراری حذف می‌شوند.
+                      برای هر بازه، گام مستقل تعیین کنید. مثلاً بازهٔ 100-120 با گام 2، تست‌های 100، 102، 104 و ... را شامل می‌شود.
                     </p>
                   </div>
 
@@ -769,7 +763,7 @@ export default function PlannerPage() {
 
             <Panel
               title="ترتیب برنامه"
-              subtitle="ترتیبی که در این بخش می‌بینید، در فایل خروجی نیز حفظ می‌شود."
+              subtitle="اینجا اولویت درس ها رو مشخص میکنید"
             >
               <div className="space-y-2">
                 {config.schedule.map((item, index) => (
@@ -813,7 +807,7 @@ export default function PlannerPage() {
 
               <div className="mt-4 rounded-2xl bg-[#0b1220] p-4">
                 <label className="field-label" htmlFor="regular-subject">
-                  افزودن یک درس عادی
+                  افزودن یک درس که هر روز قراره داشته باشمش
                 </label>
                 <div className="flex gap-2">
                   <select
@@ -846,7 +840,7 @@ export default function PlannerPage() {
 
                 <div className="mt-4">
                   <label className="field-label">
-                    ساخت گروه «یکی از این درس‌ها»
+                    با انتخاب هر درس و تایید اونها با دکمه زیر، الگوریتم یکی از درس های انتخاب شده رو بر حسب تعادل برای یک پارت در روز مشخص میکنه
                   </label>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {Object.entries(config.subjects)
@@ -889,7 +883,6 @@ export default function PlannerPage() {
                     <h2 className="font-semibold">پیش‌نمایش خروجی</h2>
                   </div>
                   <p className="mt-1 text-xs text-slate-500">
-                    متن ساده با قالب‌بندی دقیق · UTF-8
                   </p>
                   {returnedOutput && (
                     <button
@@ -953,7 +946,6 @@ export default function PlannerPage() {
               </pre>
 
               <div className="border-t border-white/10 px-5 py-3 text-xs leading-5 text-slate-500">
-                خروجی در مرورگر شما ساخته می‌شود؛ نیازی به سرور یا حساب کاربری نیست.
               </div>
             </section>
 
@@ -971,7 +963,7 @@ export default function PlannerPage() {
         </div>
 
         <footer className="mt-8 border-t border-white/10 pt-4 text-center text-xs text-slate-600">
-          برنامه‌ریز کنکور · نسخهٔ TypeScript از برنامه‌ریز اصلی پایتون
+          برنامه‌ریز کنکور · با صرف زمان کمتر برنامه بهتر بنویس
         </footer>
       </div>
 
