@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import localFont from 'next/font/local';
 import Header from '@/components/Header';
+import { Analytics } from "@vercel/analytics/next"
 
 const vazirmatn = localFont({
   src: [
@@ -58,6 +59,7 @@ export default function RootLayout({
         <main className="w-full flex-1 pb-24 sm:pb-0">
           {children}
         </main>
+        <Analytics />
       </body>
     </html>
   );
