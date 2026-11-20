@@ -106,6 +106,20 @@ export default function PlannerPage() {
   const [groupSelection, setGroupSelection] = useState<string[]>([]);
   const importRef = useRef<HTMLInputElement>(null);
 
+  function countTestsInRange(range: string, step: string | number) {
+    const match = range.match(/^\s*(-?\d+)\s*-\s*(-?\d+)\s*$/);
+
+    if (!match) return 0;
+
+    const start = Number(match[1]);
+    const end = Number(match[2]);
+    const stepValue = Math.abs(Number(step));
+
+    if (!stepValue || !Number.isFinite(stepValue)) return 0;
+
+    return Math.floor(Math.abs(end - start) / stepValue) + 1;
+  }
+
   const generated = useMemo(() => {
     try {
       return { output: generatePlan(config), error: '' };
@@ -589,177 +603,211 @@ export default function PlannerPage() {
             </Panel>
 
             <Panel
-              title="درس‌ها"
-              subtitle="برای ویرایش بازه‌ها و گام تست، یک درس را انتخاب کنید."
-            >
-              <div className="mb-4 flex flex-wrap gap-2">
-                {Object.entries(config.subjects).map(([id, subject]) => (
-                  <button
-                    key={id}
-                    onClick={() => updateSubjectDraft(id)}
-                    className={`rounded-xl border px-3 py-2 text-sm transition ${
-                      selected === id
-                        ? 'border-blue-400/50 bg-blue-500/15 text-blue-200'
-                        : 'border-white/10 bg-white/[.025] text-slate-300 hover:bg-white/[.06]'
-                    }`}
-                  >
-                    {subject.name}
-                  </button>
-                ))}
-              </div>
+  title="درس‌ها"
+  subtitle="برای ویرایش بازه‌ها و گام تست، یک درس را انتخاب کنید."
+>
+  <div className="mb-4 flex flex-wrap gap-2">
+    {Object.entries(config.subjects).map(([id, subject]) => (
+      <button
+        key={id}
+        onClick={() => updateSubjectDraft(id)}
+        className={`rounded-xl border px-3 py-2 text-sm transition ${
+          selected === id
+            ? 'border-blue-400/50 bg-blue-500/15 text-blue-200'
+            : 'border-white/10 bg-white/[.025] text-slate-300 hover:bg-white/[.06]'
+        }`}
+      >
+        {subject.name}
+      </button>
+    ))}
+  </div>
 
-              {selected && config.subjects[selected] ? (
-                <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-[#0b1220] p-3 sm:p-5">
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="break-words text-xs text-slate-500">شناسهٔ درس</p>
-                      <input
-                        value={draft.id}
-                        onChange={(event) =>
-                          setDraft({ ...draft, id: event.target.value })
-                        }
-                        className="mt-1 w-full bg-transparent text-sm font-semibold text-slate-200 outline-none"
-                        dir="ltr"
-                      />
-                    </div>
-                    <button
-                      aria-label="حذف درس"
-                      title="حذف درس"
-                      onClick={() => removeSubject(selected)}
-                      className="icon-button text-rose-300"
-                    >
-                      <Trash2 size={17} />
-                    </button>
-                  </div>
+  {selected && config.subjects[selected] ? (
+    <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-[#0b1220] p-3 sm:p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-xs text-slate-500">شناسهٔ درس</p>
+          <input
+            value={draft.id}
+            onChange={(event) =>
+              setDraft({ ...draft, id: event.target.value })
+            }
+            className="mt-1 w-full bg-transparent text-sm font-semibold text-slate-200 outline-none"
+            dir="ltr"
+          />
+        </div>
 
-                  <div>
-                    <label className="field-label">نام نمایشی درس</label>
-                    <input
-                      value={draft.name}
-                      onChange={(event) =>
-                        setDraft({ ...draft, name: event.target.value })
-                      }
-                      className="field-input"
-                      placeholder="مثلاً حسابان"
-                    />
-                  </div>
+        <button
+          aria-label="حذف درس"
+          title="حذف درس"
+          onClick={() => removeSubject(selected)}
+          className="icon-button text-rose-300"
+        >
+          <Trash2 size={17} />
+        </button>
+      </div>
 
-                  <div className="mt-4">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <label className="field-label mb-0 min-w-0 break-words">بازه‌های تست و گام هر بازه</label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDraft({
-                            ...draft,
-                            ranges: [...draft.ranges, { range: '', step: '1' }],
-                          })
-                        }
-                        className="btn-secondary"
-                      >
-                        <Plus size={15} /> افزودن بازه
-                      </button>
-                    </div>
+      <div>
+        <label className="field-label">نام نمایشی درس</label>
+        <input
+          value={draft.name}
+          onChange={(event) =>
+            setDraft({ ...draft, name: event.target.value })
+          }
+          className="field-input"
+          placeholder="مثلاً حسابان"
+        />
 
-                    <div className="space-y-2">
-                      {draft.ranges.map((range, index) => (
-                        <div
-                          key={index}
-                          className="grid min-w-0 items-end gap-3 rounded-xl border border-white/10 bg-white/[.02] p-3 min-[420px]:grid-cols-[minmax(0,1fr)_92px_auto] sm:grid-cols-[minmax(0,1fr)_112px_auto]"
-                        >
-                          <div className="min-w-0">
-                            <label className="field-label">بازهٔ {index + 1}</label>
-                            <input
-                              value={range.range}
-                              onChange={(event) =>
-                                setDraft({
-                                  ...draft,
-                                  ranges: draft.ranges.map((item, itemIndex) =>
-                                    itemIndex === index
-                                      ? { ...item, range: event.target.value }
-                                      : item,
-                                  ),
-                                })
-                              }
-                              className="field-input"
-                              placeholder="1724-1800"
-                              dir="ltr"
-                            />
-                          </div>
-                          <div>
-                            <label className="field-label">گام این بازه</label>
-                            <input
-                              type="number"
-                              min={1}
-                              step={1}
-                              value={range.step}
-                              onChange={(event) =>
-                                setDraft({
-                                  ...draft,
-                                  ranges: draft.ranges.map((item, itemIndex) =>
-                                    itemIndex === index
-                                      ? { ...item, step: event.target.value }
-                                      : item,
-                                  ),
-                                })
-                              }
-                              className="field-input"
-                              dir="ltr"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDraft({
-                                ...draft,
-                                ranges: draft.ranges.filter((_, itemIndex) => itemIndex !== index),
-                              })
-                            }
-                            disabled={draft.ranges.length === 1}
-                            className="icon-button mb-0.5 disabled:cursor-not-allowed disabled:opacity-30"
-                            aria-label={`حذف بازهٔ ${index + 1}`}
-                            title="حذف این بازه"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+        {/* Subject total */}
+        <p className="mt-1.5 text-xs font-vazirmatn text-slate-400">
+          مجموع تست‌های این درس:{' '}
+          <span className="font-bold tabular-nums text-blue-300">
+            {draft.ranges.reduce(
+              (total, range) =>
+                total + countTestsInRange(range.range, range.step),
+              0
+            )}
+          </span>{' '}
+          تست
+        </p>
+      </div>
 
-                    <p className="mt-2 text-xs leading-5 text-slate-500">
-                      برای هر بازه، گام مستقل تعیین کنید. مثلاً بازهٔ 100-120 با گام 2، تست‌های 100، 102، 104 و ... را شامل می‌شود.
-                    </p>
-                  </div>
+      <div className="mt-4">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <label className="field-label mb-0 min-w-0 break-words">
+            بازه‌های تست و گام هر بازه
+          </label>
 
-                  <button onClick={saveSubject} className="btn-primary mt-4">
-                    <Save size={16} /> اعمال تغییرات درس
-                  </button>
+          <button
+            type="button"
+            onClick={() =>
+              setDraft({
+                ...draft,
+                ranges: [...draft.ranges, { range: '', step: '1' }],
+              })
+            }
+            className="btn-secondary"
+          >
+            <Plus size={15} /> افزودن بازه
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {draft.ranges.map((range, index) => {
+            const testCount = countTestsInRange(range.range, range.step);
+
+            return (
+              <div
+                key={index}
+                className="grid min-w-0 items-end gap-3 rounded-xl border border-white/10 bg-white/[.02] p-3 min-[420px]:grid-cols-[minmax(0,1fr)_92px_auto] sm:grid-cols-[minmax(0,1fr)_112px_auto]"
+              >
+                <div className="min-w-0">
+                  <label className="field-label">
+                    بازهٔ {index + 1}
+                    <span className="mr-1.5 text-blue-300">
+                      ({testCount} تست)
+                    </span>
+                  </label>
+
+                  <input
+                    value={range.range}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        ranges: draft.ranges.map((item, itemIndex) =>
+                          itemIndex === index
+                            ? { ...item, range: event.target.value }
+                            : item
+                        ),
+                      })
+                    }
+                    className="field-input"
+                    placeholder="1724-1800"
+                    dir="ltr"
+                  />
                 </div>
-              ) : (
-                <p className="text-sm text-slate-500">
-                  از بخش زیر اولین درس خود را اضافه کنید.
-                </p>
-              )}
 
-              <div className="mt-4 grid w-full min-w-0 grid-cols-1 gap-2 rounded-2xl border border-dashed border-white/15 p-3 sm:p-4 min-[480px]:grid-cols-2 sm:grid-cols-[minmax(0,.8fr)_minmax(0,1fr)_auto]">
-                <input
-                  value={newId}
-                  onChange={(event) => setNewId(event.target.value)}
-                  className="field-input"
-                  placeholder="شناسهٔ جدید (مثلاً algebra)"
-                  dir="ltr"
-                />
-                <input
-                  value={newName}
-                  onChange={(event) => setNewName(event.target.value)}
-                  className="field-input"
-                  placeholder="نام نمایشی درس"
-                />
-                <button onClick={addSubject} className="btn-secondary">
-                  <Plus size={16} /> افزودن درس
+                <div>
+                  <label className="field-label">گام این بازه</label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={range.step}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        ranges: draft.ranges.map((item, itemIndex) =>
+                          itemIndex === index
+                            ? { ...item, step: event.target.value }
+                            : item
+                        ),
+                      })
+                    }
+                    className="field-input"
+                    dir="ltr"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      ranges: draft.ranges.filter(
+                        (_, itemIndex) => itemIndex !== index
+                      ),
+                    })
+                  }
+                  disabled={draft.ranges.length === 1}
+                  className="icon-button mb-0.5 disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label={`حذف بازهٔ ${index + 1}`}
+                  title="حذف این بازه"
+                >
+                  <Trash2 size={16} />
                 </button>
               </div>
-            </Panel>
+            );
+          })}
+        </div>
+
+        <p className="mt-2 text-xs leading-5 text-slate-500">
+          برای هر بازه، گام مستقل تعیین کنید. مثلاً بازهٔ 100-120 با
+          گام 2، تست‌های 100، 102، 104 و ... را شامل می‌شود.
+        </p>
+      </div>
+
+      <button onClick={saveSubject} className="btn-primary mt-4">
+        <Save size={16} /> اعمال تغییرات درس
+      </button>
+    </div>
+  ) : (
+    <p className="text-sm text-slate-500">
+      از بخش زیر اولین درس خود را اضافه کنید.
+    </p>
+  )}
+
+  <div className="mt-4 grid w-full min-w-0 grid-cols-1 gap-2 rounded-2xl border border-dashed border-white/15 p-3 sm:p-4 min-[480px]:grid-cols-2 sm:grid-cols-[minmax(0,.8fr)_minmax(0,1fr)_auto]">
+    <input
+      value={newId}
+      onChange={(event) => setNewId(event.target.value)}
+      className="field-input"
+      placeholder="شناسهٔ جدید (مثلاً algebra)"
+      dir="ltr"
+    />
+
+    <input
+      value={newName}
+      onChange={(event) => setNewName(event.target.value)}
+      className="field-input"
+      placeholder="نام نمایشی درس"
+    />
+
+    <button onClick={addSubject} className="btn-secondary">
+      <Plus size={16} /> افزودن درس
+    </button>
+  </div>
+</Panel>
 
             <Panel
               title="ترتیب برنامه"
