@@ -454,6 +454,25 @@ function SummaryCard({
   subjectTotals: { subject: string; count: number }[];
   totalTests: number;
 }) {
+  const sortedSubjectTotals = [...subjectTotals].sort((a, b) => {
+    const colorA = getSubjectStyle(a.subject).className;
+    const colorB = getSubjectStyle(b.subject).className;
+
+    const countA = subjectTotals.filter(
+      (s) => getSubjectStyle(s.subject).className === colorA
+    ).length;
+
+    const countB = subjectTotals.filter(
+      (s) => getSubjectStyle(s.subject).className === colorB
+    ).length;
+
+    // Unique colors go to the end
+    if (countA === 1 && countB > 1) return 1;
+    if (countA > 1 && countB === 1) return -1;
+
+    return 0;
+  });
+
   return (
     <section
       className="
@@ -497,7 +516,7 @@ function SummaryCard({
 
       {/* Subject totals */}
       <div className="grid grid-cols-2 gap-1.5 2xl:gap-1">
-        {subjectTotals.map(({ subject, count }) => {
+        {sortedSubjectTotals.map(({ subject, count }) => {
           const style = getSubjectStyle(subject);
           const Icon = style.icon;
 
