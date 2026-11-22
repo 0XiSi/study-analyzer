@@ -1031,6 +1031,7 @@ export default function PlannerPage() {
 
         <footer className="mt-8 border-t border-white/10 pt-4 text-center text-xs text-slate-600">
           برنامه‌ریز کنکور · با صرف زمان کمتر برنامه بهتر بنویس
+          با زدن دکمه ارسال به نمایشگر، برنامه ای که ساختید برای آنالیز ذخیره میشه.
         </footer>
       </div>
 
