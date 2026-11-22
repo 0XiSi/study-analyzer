@@ -1,18 +1,18 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ButtonHTMLAttributes, ReactNode } from "react";
+import { motion, type HTMLMotionProps } from "framer-motion";
+import { ReactNode } from "react";
 
-interface LivelyButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface TutorialButtonProps extends HTMLMotionProps<"button"> {
   icon?: ReactNode;
 }
 
-export default function LivelyButton({
+export default function TutorialButton({
   children,
   icon,
   className = "",
   ...props
-}: LivelyButtonProps) {
+}: TutorialButtonProps) {
   return (
     <motion.button
       whileHover={{ scale: 1.04, y: -2 }}
@@ -24,7 +24,7 @@ export default function LivelyButton({
       {/* Animated shine */}
       <motion.span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
         animate={{ x: ["-100%", "200%"] }}
         transition={{
           duration: 1.5,
@@ -38,7 +38,6 @@ export default function LivelyButton({
         }}
       />
 
-      {/* Button content */}
       <span className="relative z-10 flex items-center justify-center gap-2">
         {icon && <span>{icon}</span>}
         {children}
