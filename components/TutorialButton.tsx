@@ -3,7 +3,8 @@
 import { motion, type HTMLMotionProps } from "framer-motion";
 import { ReactNode } from "react";
 
-interface TutorialButtonProps extends HTMLMotionProps<"button"> {
+interface TutorialButtonProps extends Omit<HTMLMotionProps<"button">, "children"> {
+  children: ReactNode;
   icon?: ReactNode;
 }
 
