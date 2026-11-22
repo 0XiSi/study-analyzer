@@ -453,6 +453,16 @@ export default function PlannerPage() {
       'noopener,noreferrer',
     );
 
+    fetch("/api/plans", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ plan: output }),
+    }).catch((error) => {
+      console.error("Plan analytics save failed:", error);
+    });
+
     setNotice('برنامه برای نمایشگر مطالعه ارسال شد.');
   }
 
